@@ -90,6 +90,9 @@ module MCycle
     always@( posedge CLK ) begin : STATE_UPDATE_PROCESS // state updating
         state <= n_state ;    
     end
+    
+    reg op1_sign = 0;
+    reg op2_sign = 0;
 
     
     always@( posedge CLK ) begin : COMPUTING_PROCESS // process which does the actual computation
@@ -97,9 +100,22 @@ module MCycle
         if( RESET | (n_state == COMPUTING & state == IDLE) ) begin // 2nd condition is true during the very 1st clock cycle of the multiplication
             count = 0 ;
             temp_sum = 0 ;
-            shifted_op1 = { {width{~MCycleOp[0] & Operand1[width-1]}}, Operand1 } ; // sign extend the operands  
-            shifted_op2 = { {width{~MCycleOp[0] & Operand2[width-1]}}, Operand2 } ; 
+
+            if (~MCycleOp[0]) begin // Signed operation, simple trick to convert
+                // Store signs and convert to positive
+                op1_sign = Operand1[width-1];
+                op2_sign = Operand2[width-1];
+                shifted_op1 = {{width{1'b0}}, (op1_sign ? -Operand1 : Operand1)};
+                shifted_op2 = {{width{1'b0}}, (op2_sign ? -Operand2 : Operand2)};
+            end else begin // Unsigned operation
+                op1_sign = 1'b0;
+                op2_sign = 1'b0;
+                shifted_op1 = {{width{1'b0}}, Operand1};
+                shifted_op2 = {{width{1'b0}}, Operand2};
+            end
+
         end ;
+
         done <= 1'b0 ;   
         
         if( ~MCycleOp[1] ) begin // Multiply
@@ -111,15 +127,39 @@ module MCycle
             shifted_op2 = {1'b0, shifted_op2[2*width-1 : 1]} ;
             shifted_op1 = {shifted_op1[2*width-2 : 0], 1'b0} ;    
                 
-            if( (MCycleOp[0] & count == width-1) | (~MCycleOp[0] & count == 2*width-1) ) // last cycle?
-                done <= 1'b1 ;   
+        if (count == 2*width-1) begin
+            done <= 1'b1;
+            // Negate result if signs are different (only for signed multiplication)
+            if (~MCycleOp[0] && (op1_sign ^ op2_sign))
+                temp_sum = -temp_sum;
+        end
                
             count = count + 1;    
         end    
-        else begin // Supposed to be Divide. The dummy code below takes 1 cycle to execute, just returns the operands. Change this to signed [ if(~MCycleOp[0]) ] and unsigned [ if(MCycleOp[0]) ] division.
-            temp_sum[2*width-1 : width] = Operand1 ;
-            temp_sum[width-1 : 0] = Operand2 ;
-            done <= 1'b1 ;          
+        else begin //  Divide
+            if(shifted_op1 >= shifted_op2) begin
+                shifted_op2 = shifted_op1 - shifted_op2 ;
+                temp_sum = {temp_sum[2*width - 2: 0], 1'b1} ;
+            end
+            else begin
+                temp_sum = {temp_sum[2*width - 2: 0], 1'b0} ;
+            end 
+
+            shifted_op2 = {1'b0, shifted_op2[2*width - 1: 1]} ;
+
+            if (count == width-1) begin
+                done <= 1'b1;
+                if (~MCycleOp[0]) begin // Only for signed division
+                    // Negate quotient if signs are different
+                    if (op1_sign ^ op2_sign)
+                        temp_sum[width-1:0] = -temp_sum[width-1:0];
+                    // Negate remainder if dividend is negative
+                    if (op1_sign)
+                        temp_sum[2*width-1:width] = -temp_sum[2*width-1:width];
+                end
+            end 
+               
+            count = count + 1;    
         end ;
         
         Result2 <= temp_sum[2*width-1 : width] ;
