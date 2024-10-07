@@ -32,85 +32,84 @@
 ----------------------------------------------------------------------------------
 */
 
-module test_MCycle(
+module test_MCycle();
 
-    );
-    
-    // DECLARE INPUT SIGNALs
-    reg CLK = 0 ;
-    reg RESET = 0 ;
-    reg Start = 0 ;
-    reg [1:0] MCycleOp = 0 ;
-    reg [3:0] Operand1 = 0 ;
-    reg [3:0] Operand2 = 0 ;
+    // DECLARE INPUT SIGNALS
+    reg CLK = 0;
+    reg RESET = 0;
+    reg Start = 0;
+    reg [1:0] MCycleOp = 0;
+    reg [3:0] Operand1 = 0;
+    reg [3:0] Operand2 = 0;
 
-    // DECLARE OUTPUT SIGNALs
-    wire [3:0] Result1 ;
-    wire [3:0] Result2 ;
-    wire Busy ;
+    // DECLARE OUTPUT SIGNALS
+    wire [3:0] Result1;
+    wire [3:0] Result2;
+    wire Busy;
     
     // INSTANTIATE DEVICE/UNIT UNDER TEST (DUT/UUT)
-    MCycle dut( 
-        CLK, 
-        RESET, 
-        Start, 
-        MCycleOp, 
-        Operand1, 
-        Operand2, 
-        Result1, 
-        Result2, 
-        Busy
-        ) ;
+    MCycle dut(CLK, RESET, Start, MCycleOp, Operand1, Operand2, Result1, Result2, Busy);
     
     // STIMULI
     initial begin
-        // hold reset state for 100 ns.
-        #10 ;    
-        MCycleOp = 2'b00 ;
-        Operand1 = 4'b1111 ;
-        Operand2 = 4'b1111 ;
-        Start = 1'b1 ; // Start is asserted continously(Operations are performed back to back). To try a non-continous Start, you can uncomment the commented lines.    
-
-        wait(Busy) ; // suspend initial block till condition becomes true  ;
-        wait(~Busy) ;
-//        #10 ;
-//        Start = 1'b0 ;
-//        #10 ;
-        Operand1 = 4'b1110 ;
-        Operand2 = 4'b1111 ;
-//        Start = 1'b1 ;
+        $display("Test started");
         
-        wait(Busy) ; 
-        wait(~Busy) ;
-//        #10 ;
-//        Start = 1'b0 ;
-//        #10 ;
-        MCycleOp = 2'b01 ;
-        Operand1 = 4'b1111 ;
-        Operand2 = 4'b1111 ;
-//        Start = 1'b1 ;
+       // Test 1: Signed Multiplication
+       #10;    
+       MCycleOp = 2'b00;
+       Operand1 = 4'b1111; // -1
+       Operand2 = 4'b0010; // -2
+       Start = 1'b1;
+       $display("Test 1: Signed Multiply - Operands: %d, %d", $signed(Operand1), $signed(Operand2));
 
-        wait(Busy) ; 
-        wait(~Busy) ; 
-//        #10 ;
-//        Start = 1'b0 ;
-//        #10 ;
-        Operand1 = 4'b1110 ;
-        Operand2 = 4'b1111 ;
-//        Start = 1'b1 ;
+       wait(Busy);
+       wait(~Busy);
+       $display("Test 1 Result: %d", $signed({Result2, Result1}));
 
-        wait(Busy) ; 
-        wait(~Busy) ; 
-        Start = 1'b0 ;
+       // Test 2: Unsigned Multiplication
+       MCycleOp = 2'b01;
+       Operand1 = 4'b1111; // 15
+       Operand2 = 4'b0011; // 3
+       $display("Test 2: Unsigned Multiply - Operands: %d, %d", Operand1, Operand2);
+        
+       wait(Busy); 
+       wait(~Busy);
+       $display("Test 2 Result: %d", {Result2, Result1});
+
+        // Test 3: Signed Division
+        MCycleOp = 2'b10;
+        Operand1 = 4'b0110; // 6
+        Operand2 = 4'b1110; // -2
+        $display("Test 3: Signed Divide - Operands: %d, %d", $signed(Operand1), $signed(Operand2));
+
+        wait(Busy); 
+        wait(~Busy); 
+        $display("Test 3 Quotient: %d, Remainder: %d", $signed(Result1), $signed(Result2));
+
+
+        // Test 4: Unsigned Division
+        MCycleOp = 2'b11;
+        Operand1 = 4'b0101; // 5
+        Operand2 = 4'b0001; // 2
+        $display("Test 4: Unsigned Divide - Operands: %d, %d", Operand1, Operand2);
+
+        wait(Busy); 
+        wait(~Busy); 
+        $display("Test 4 Quotient: %d, Remainder: %d", Result1, Result2);
+
+
+        Start = 1'b0;
+        $display("Test completed");
     end
      
     // GENERATE CLOCK       
     always begin 
-        #5 CLK = ~CLK ; 
-        // invert CLK every 5 time units 
+        #5 CLK = ~CLK; 
     end
     
 endmodule
+
+
 
 
 

@@ -105,8 +105,16 @@ module MCycle
                 // Store signs and convert to positive
                 op1_sign = Operand1[width-1];
                 op2_sign = Operand2[width-1];
-                shifted_op1 = {{width{1'b0}}, (op1_sign ? -Operand1 : Operand1)};
-                shifted_op2 = {{width{1'b0}}, (op2_sign ? -Operand2 : Operand2)};
+                if (op1_sign)
+                    shifted_op1 = {{width{1'b0}}, (~Operand1 + 1'b1)};
+                else
+                    shifted_op1 = {{width{1'b0}}, Operand1};
+                
+                if (op2_sign)
+                    shifted_op2 = {{width{1'b0}}, (~Operand2 + 1'b1)};
+                else
+                    shifted_op2 = {{width{1'b0}}, Operand2};
+
             end else begin // Unsigned operation
                 op1_sign = 1'b0;
                 op2_sign = 1'b0;
@@ -131,40 +139,53 @@ module MCycle
             done <= 1'b1;
             // Negate result if signs are different (only for signed multiplication)
             if (~MCycleOp[0] && (op1_sign ^ op2_sign))
-                temp_sum = -temp_sum;
+                temp_sum = ~temp_sum + 1'b1; // 2's complement negation
         end
                
             count = count + 1;    
         end    
         else begin //  Divide
-            if(shifted_op1 >= shifted_op2) begin
-                shifted_op2 = shifted_op1 - shifted_op2 ;
-                temp_sum = {temp_sum[2*width - 2: 0], 1'b1} ;
+            if (RESET | (n_state == COMPUTING & state == IDLE)) begin
+                // Initialize for division
+                shifted_op2 = {Operand2, {width{1'b0}}};
             end
-            else begin
-                temp_sum = {temp_sum[2*width - 2: 0], 1'b0} ;
+            
+
+            if(shifted_op1 >= shifted_op2) begin
+                shifted_op1 = shifted_op1 - shifted_op2;
+                temp_sum = {temp_sum[2*width-2:0], 1'b1};
+            end else begin
+                temp_sum = {temp_sum[2*width-2:0], 1'b0};
             end 
 
-            shifted_op2 = {1'b0, shifted_op2[2*width - 1: 1]} ;
+            shifted_op2 = {1'b0, shifted_op2[2*width-1:1]}; // Shift divisor right
 
-            if (count == width-1) begin
+            if(count == width) begin
                 done <= 1'b1;
                 if (~MCycleOp[0]) begin // Only for signed division
-                    // Negate quotient if signs are different
+                    // Adjust quotient
                     if (op1_sign ^ op2_sign)
-                        temp_sum[width-1:0] = -temp_sum[width-1:0];
-                    // Negate remainder if dividend is negative
+                        temp_sum[width-1:0] = ~temp_sum[width-1:0];
+                    
+                    // Adjust remainder
                     if (op1_sign)
-                        temp_sum[2*width-1:width] = -temp_sum[2*width-1:width];
+                        shifted_op1[width-1:0] = ~shifted_op1[width-1:0];
+                    
                 end
-            end 
+            end
+
+            count = count + 1;
                
-            count = count + 1;    
-        end ;
-        
-        Result2 <= temp_sum[2*width-1 : width] ;
-        Result1 <= temp_sum[width-1 : 0] ;
-             
+        end
+
+        if( ~MCycleOp[1] ) begin 
+            Result2 <= temp_sum[2*width-1 : width];
+            Result1 <= temp_sum[width-1 : 0];
+        end
+        else begin
+            Result2 <= shifted_op1[width-1:0]; // Remainder
+            Result1 <= temp_sum[width-1 : 0];  // Quotient
+        end
     end
    
 endmodule
