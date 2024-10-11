@@ -34,7 +34,7 @@
 
 module MCycle
 
-    #(parameter width = 4) // Keep this at 4 to verify your algorithms with 4 bit numbers (easier). When using MCycle as a component in ARM, generic map it to 32.
+    #(parameter width = 32) // Keep this at 4 to verify your algorithms with 4 bit numbers (easier). When using MCycle as a component in ARM, generic map it to 32.
     (
         input CLK,
         input RESET, // Connect this to the reset of the ARM processor.
@@ -147,7 +147,7 @@ module MCycle
         else begin //  Divide
             if (RESET | (n_state == COMPUTING & state == IDLE)) begin
                 // Initialize for division
-                shifted_op2 = {1'b0, Operand2, {(width- 1){1'b0}}};
+                shifted_op2 = {1'b0, shifted_op2[width - 1: 0], {(width- 1){1'b0}}};
             end
             
 
@@ -165,11 +165,11 @@ module MCycle
                 if (~MCycleOp[0]) begin // Only for signed division
                     // Adjust quotient
                     if (op1_sign ^ op2_sign)
-                        temp_sum[width-1:0] = ~(temp_sum[width-1:0] + 1'b1);
+                        temp_sum[width-1:0] = ~temp_sum[width-1:0] + 1'b1;
                     
                     // Adjust remainder
                     if (op1_sign)
-                        shifted_op1[width-1:0] = ~(shifted_op1[width-1:0] + 1'b1);
+                        shifted_op1[width-1:0] = ~shifted_op1[width-1:0] + 1'b1;
                     
                 end
             end
@@ -189,7 +189,6 @@ module MCycle
     end
    
 endmodule
-
 
 
 
