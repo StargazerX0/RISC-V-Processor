@@ -3,5 +3,15 @@
 Oct 14 2022
 05:07:14
 /home/stargazer/Desktop/CG3207-Lab3/ALU.sim/sim_1/behav/xsim/glbl.v,1665704903,verilog,,,,glbl,,,,,,,,
-/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/CG3207-Lab3/MCycle.v,1728300758,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/CG3207-Lab3/test_MCycle.v,,MCycle,,,,,,,,
+/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/CG3207-Lab3/MCycle.v,1728301636,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/PC_Logic.v,,MCycle,,,,,,,,
 /home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/CG3207-Lab3/test_MCycle.v,1728300511,verilog,,,,test_MCycle,,,,,,,,
+/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/ALU.v,1728302981,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/Decoder.v,,ALU,,,,,,,,
+/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/Decoder.v,1728305705,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/Extend.v,,Decoder,,,,,,,,
+/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/Extend.v,1727543072,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/CG3207-Lab3/MCycle.v,,Extend,,,,,,,,
+/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/PC_Logic.v,1727543072,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/ProgramCounter.v,,PC_Logic,,,,,,,,
+/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/ProgramCounter.v,1728635930,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/RV.v,,ProgramCounter,,,,,,,,
+/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/RV.v,1728635897,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/RegFile.v,,RV,,,,,,,,
+/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/RegFile.v,1727543072,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/Shifter.v,,RegFile,,,,,,,,
+/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/Shifter.v,1727543072,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/Wrapper.v,,Shifter;shiftByNPowerOf2,,,,,,,,
+/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/Wrapper.v,1728637767,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/test_Wrapper.v,,Wrapper,,,,,,,,
+/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/test_Wrapper.v,1727615336,verilog,,,,test_Wrapper,,,,,,,,

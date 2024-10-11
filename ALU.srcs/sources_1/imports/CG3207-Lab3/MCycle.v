@@ -34,7 +34,7 @@
 
 module MCycle
 
-    #(parameter width = 4) // Keep this at 4 to verify your algorithms with 4 bit numbers (easier). When using MCycle as a component in ARM, generic map it to 32.
+    #(parameter width = 32) // Keep this at 4 to verify your algorithms with 4 bit numbers (easier). When using MCycle as a component in ARM, generic map it to 32.
     (
         input CLK,
         input RESET, // Connect this to the reset of the ARM processor.
@@ -60,8 +60,7 @@ module MCycle
     reg [7:0] count = 0 ; // assuming no computation takes more than 256 cycles.
     reg [2*width-1:0] temp_sum = 0 ;
     reg [2*width-1:0] shifted_op1 = 0 ;
-    reg [2*width-1:0] shifted_op2 = 0 ;
-    reg [width:0] shifted_regs[width-1:0];
+    reg [2*width-1:0] shifted_op2 = 0 ;     
    
     always@( state, done, Start, RESET ) begin : IDLE_PROCESS  
 		// Note : This block uses non-blocking assignments to get around an unpredictable Verilog simulation behaviour.
@@ -149,45 +148,7 @@ module MCycle
             if (RESET | (n_state == COMPUTING & state == IDLE)) begin
                 // Initialize for division
                 shifted_op2 = {1'b0, shifted_op2[width - 1: 0], {(width- 1){1'b0}}};
-		    shifted_reg[0]  <= Operand1 << 0;
-		        shifted_reg[1]  <= Operand1 << 1;
-		        shifted_reg[2]  <= Operand1 << 2;
-		        shifted_reg[3]  <= Operand1 << 3;
-		        shifted_reg[4]  <= Operand1 << 4;
-		        shifted_reg[5]  <= Operand1 << 5;
-		        shifted_reg[6]  <= Operand1 << 6;
-		        shifted_reg[7]  <= Operand1 << 7;
-		        shifted_reg[8]  <= Operand1 << 8;
-		        shifted_reg[9]  <= Operand1 << 9;
-		        shifted_reg[10] <= Operand1 << 10;
-		        shifted_reg[11] <= Operand1 << 11;
-		        shifted_reg[12] <= Operand1 << 12;
-		        shifted_reg[13] <= Operand1 << 13;
-		        shifted_reg[14] <= Operand1 << 14;
-		        shifted_reg[15] <= Operand1 << 15;
-		        shifted_reg[16] <= Operand1 << 16;
-		        shifted_reg[17] <= Operand1 << 17;
-		        shifted_reg[18] <= Operand1 << 18;
-		        shifted_reg[19] <= Operand1 << 19;
-		        shifted_reg[20] <= Operand1 << 20;
-		        shifted_reg[21] <= Operand1 << 21;
-		        shifted_reg[22] <= Operand1 << 22;
-		        shifted_reg[23] <= Operand1 << 23;
-		        shifted_reg[24] <= Operand1 << 24;
-		        shifted_reg[25] <= Operand1 << 25;
-		        shifted_reg[26] <= Operand1 << 26;
-		        shifted_reg[27] <= Operand1 << 27;
-		        shifted_reg[28] <= Operand1 << 28;
-		        shifted_reg[29] <= Operand1 << 29;
-		        shifted_reg[30] <= Operand1 << 30;
-		        shifted_reg[31] <= Operand1 << 31;
             end
-
-		for (int i = 0; i < width; i++)
-			begin
-				if (Operand2[i])
-					temp_sum += shifted_reg[i];
-			end
             
 
             if(shifted_op1 >= shifted_op2) begin
