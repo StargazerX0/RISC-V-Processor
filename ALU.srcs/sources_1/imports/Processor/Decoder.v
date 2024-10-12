@@ -173,9 +173,14 @@ module Decoder(
             MCycleOp = 2'b01;
             MCycleSelect = 1'b1;
         end
-        else if (Opcode == 7'h33 && Funct3 == 3'h4 && Funct7 == 7'h01) begin
+        else if (Opcode == 7'h33 && Funct3 == 3'h5 && Funct7 == 7'h01) begin
             MCycleStart = 1'b1;
             MCycleOp = 2'b11;
+            MCycleSelect = 1'b1;
+        end
+        else if (Opcode == 7'h33 && Funct3 == 3'h4 && Funct7 == 7'h01) begin
+            MCycleStart = 1'b1;
+            MCycleOp = 2'b10;
             MCycleSelect = 1'b1;
         end
         else begin
