@@ -62,7 +62,7 @@ module MCycle
     reg [2*width-1:0] shifted_op1 = 0 ;
     reg [2*width-1:0] shifted_op2 = 0 ;
          
-    parameter half_width = 16; // also will cause the above warning
+    parameter half_width = width/2; // also will cause the above warning
    
     always@( state, done, Start, RESET ) begin : IDLE_PROCESS  
 		// Note : This block uses non-blocking assignments to get around an unpredictable Verilog simulation behaviour.
@@ -217,14 +217,14 @@ module MCycle
 //                temp_sum = ~temp_sum + 1'b1; // 2's complement negation
 //        end
         
-        if (count == width-1) begin
+        if (count == half_width) begin
             done <= 1'b1;
             
             Z1 = temp_sum_sum_op - temp_sum_msb - temp_sum_lsb;
-            result = (temp_sum_msb << width) + (temp_sum_sum_op << half_width) + temp_sum_lsb;
+            temp_sum = (temp_sum_msb << width) + (Z1 << half_width) + temp_sum_lsb;
             
             if (~MCycleOp[0] && (op1_sign ^ op2_sign))
-                temp_sum = ~result + 1'b1; // 2's complement negation
+                temp_sum = ~temp_sum + 1'b1; // 2's complement negation
         end
                
             count = count + 1;    
