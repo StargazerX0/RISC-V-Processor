@@ -136,7 +136,7 @@ module RV(
     assign WriteData = RD2;
 
     //result selcetion
-    assign Result = MemtoReg ? ReadData : ALUResult;
+    assign Result = MemtoReg ? ReadData : MCycleSelect ? MCycle_Result1 : ALUResult;
     assign WD = Result;
     assign WE = RegWrite;
 	
