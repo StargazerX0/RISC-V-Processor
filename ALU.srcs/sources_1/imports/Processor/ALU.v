@@ -93,6 +93,11 @@ module ALU(
              begin
                 ALUResult = ShOut;
              end
+             
+             4'b1000: ALUResult = Src_A ^ Src_B;    // xor
+             
+             4'b0100: ALUResult = (Src_A < Src_B) ? 1 : 0;  // slt
+             4'b0110: ALUResult = (Src_A < Src_B) ? 1 : 0;  // sltu 
             										
             default: ALUResult = 32'bx;
         endcase
