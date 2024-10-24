@@ -11,22 +11,22 @@ module test_Wrapper #(
     wire [N_LEDs_OUT-1:0] LED_OUT;
     wire [6:0] LED_PC;
     wire [31:0] SEVENSEGHEX;
-    wire [7:0] CONSOLE_OUT;
-    reg  CONSOLE_OUT_ready = 1;
-    wire CONSOLE_OUT_valid;
-    reg  [7:0] CONSOLE_IN = 0;
-    reg  CONSOLE_IN_valid = 0;
-    wire CONSOLE_IN_ack;
+    wire [7:0] UART_TX;
+    reg  UART_TX_ready = 1;
+    wire UART_TX_valid;
+    reg  [7:0] UART_RX = 0;
+    reg  UART_RX_valid = 0;
+    wire UART_RX_ack;
     reg  RESET;
     reg  CLK;
 
     // Instantiate UUT
     Wrapper dut(
         .DIP(DIP), .PB(PB), .LED_OUT(LED_OUT), .LED_PC(LED_PC),
-        .SEVENSEGHEX(SEVENSEGHEX), .CONSOLE_OUT(CONSOLE_OUT),
-        .CONSOLE_OUT_ready(CONSOLE_OUT_ready), .CONSOLE_OUT_valid(CONSOLE_OUT_valid),
-        .CONSOLE_IN(CONSOLE_IN), .CONSOLE_IN_valid(CONSOLE_IN_valid),
-        .CONSOLE_IN_ack(CONSOLE_IN_ack), .RESET(RESET), .CLK(CLK)
+        .SEVENSEGHEX(SEVENSEGHEX), .UART_TX(UART_TX),
+        .UART_TX_ready(UART_TX_ready), .UART_TX_valid(UART_TX_valid),
+        .UART_RX(UART_RX), .UART_RX_valid(UART_RX_valid),
+        .UART_RX_ack(UART_RX_ack), .RESET(RESET), .CLK(CLK)
     );
 
     // Clock generation
