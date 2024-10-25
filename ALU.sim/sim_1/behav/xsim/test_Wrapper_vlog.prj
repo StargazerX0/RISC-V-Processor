@@ -2,11 +2,14 @@
 verilog xil_defaultlib  \
 "../../../../ALU.srcs/sources_1/imports/Processor/ALU.v" \
 "../../../../ALU.srcs/sources_1/imports/Processor/Decoder.v" \
+"../../../../ALU.srcs/sources_1/imports/Processor/EX_MEM.v" \
 "../../../../ALU.srcs/sources_1/imports/Processor/Extend.v" \
+"../../../../ALU.srcs/sources_1/imports/Processor/ID_EX.v" \
+"../../../../ALU.srcs/sources_1/imports/Processor/IF_ID.v" \
 "../../../../ALU.srcs/sources_1/imports/CG3207-Lab3/MCycle.v" \
-"../../../../ALU.srcs/sources_1/imports/Processor/PC_Logic.v" \
+"../../../../ALU.srcs/sources_1/imports/Processor/MEM_WB.v" \
+"../../../../ALU.srcs/sources_1/imports/Processor/Pipeline_RV.v" \
 "../../../../ALU.srcs/sources_1/imports/Processor/ProgramCounter.v" \
-"../../../../ALU.srcs/sources_1/imports/Processor/RV.v" \
 "../../../../ALU.srcs/sources_1/imports/Processor/RegFile.v" \
 "../../../../ALU.srcs/sources_1/imports/Processor/Shifter.v" \
 "../../../../ALU.srcs/sources_1/imports/Processor/Wrapper.v" \
