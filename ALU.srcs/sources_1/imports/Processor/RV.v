@@ -15,8 +15,7 @@
 -- 
 -- Revision:
 -- Revision 0.01 - File Created
--- Additional Comments: The interface SHOULD NOT be modified unless you modify Wrapper.v/vhd too. 
-                        The implementation can be modified.
+-- Additional Comments: The interface SHOULD NOT be modified unless you modify Wrapper.v/vhd too. The implementation can be modified
 -- 
 ----------------------------------------------------------------------------------
 
@@ -32,29 +31,27 @@
 ----------------------------------------------------------------------------------
 */
 
+//-- Save waveform file and add it to the project
+//-- Reset and launch simulation if you add interal signals to the waveform window
+
 // Change wire to reg if assigned inside a procedural (always) block. However, where it is easy enough, use assign instead of always.
 // A 2-1 multiplexing can be done easily using an assign with a ternary operator
-// For multiplexing with number of inputs > 2, a case construct within an always block is a natural fit. DO NOT use nested ternary assignment operator as it hampers the readability of your code.
+// For multiplexing with number of inputs > 2, a case construct within an always block is a natural fit. DO NOT to use nested ternary assignment operator as it hampers the readability of your code.
 
 module RV(
     input CLK,
     input RESET,
-    //input Interrupt,  
+    //input Interrupt,  // for optional future use
     input [31:0] Instr,
-    input [31:0] ReadData_in,  // v2: Renamed to support lb/lbu/lh/lhu
+    input [31:0] ReadData,
     output MemRead,
-    output [3:0] MemWrite_out,  // v2: Changed to support sb/sh
+    output MemWrite,
     output [31:0] PC,
     output [31:0] FinalALUResult,
-    output [31:0] WriteData_out  // v2: Renamed to support sb/sh
+    output [31:0] WriteData
     );
     
-    // RV Signals
-    wire [2:0] SizeSel;
-    wire [31:0] ReadData;
-    wire [31:0] WriteData;
-    wire MemWrite;
-
+    wire [31:0] ALUResult;
     // RegFile signals
     wire WE;
     wire [4:0] rs1;
@@ -64,7 +61,7 @@ module RV(
     wire [31:0] R15;
     wire [31:0] RD1;
     wire [31:0] RD2;
-     
+    
     // Extend Module signals
     wire [2:0] ImmSrc;
     wire [24:0] InstrImm;
@@ -80,23 +77,22 @@ module RV(
     wire [1:0] ALUSrcA;
     wire ALUSrcB;
     wire [3:0] ALUControl;
-
+    
     // PC_Logic signals
+    wire [2:0] ALUFlags;
     wire [1:0] PCSrc;
-
+      
     // ALU signals
     wire [31:0] Src_A;
     wire [31:0] Src_B;
-    wire [31:0] ALUResult;
-    wire [2:0] ALUFlags;
-
-    // ProgramCounter signals
-    wire WE_PC;
-    wire [31:0] PC_IN;
     
+    // ProgramCounter signals
+    wire WE_PC;    
+    wire [31:0] PC_IN;
+        
     // Other internal signals here
-    wire [31:0] PC_Offset;
-    wire [31:0] Result;
+    wire [31:0] PC_Offset ;
+    wire [31:0] Result ;
     
     wire MCycleStart;
     wire [1:0] MCycleOp;
@@ -106,15 +102,11 @@ module RV(
     wire MCycleSelect;
     
     assign MemRead = MemtoReg; // This is needed for the proper functionality of some devices such as UART CONSOLE
-    assign WE_PC = ~Busy; // For multi-cycle operations (Multiplication, Division) or Pipelining with hazard hardware.
+    assign WE_PC = ~Busy; // Will need to control it for multi-cycle operations (Multiplication, Division) and/or Pipelining with hazard hardware.
     
-    // v2: Added to support lb/lbu/lh/lhu/sb/sh
-    assign ReadData = ReadData_in;  
-    assign WriteData_out = WriteData;  
-    assign MemWrite_out = {4{MemWrite}}; 
-    assign SizeSel = 3'b010;  
+    // todo: other datapath connections here
 
-    // instruction parsing
+    //instruction parsing
     assign Opcode = Instr[6:0];
     assign Funct3 = Instr[14:12];
     assign Funct7 = Instr[31:25];
@@ -123,30 +115,31 @@ module RV(
     assign rd = Instr[11:7];
     assign InstrImm = Instr[31:7];
 
-    // ALU Connection
+    //ALU Connection
     assign Src_A = (ALUSrcA[0] == 1'b0) ? RD1 :
-                   (ALUSrcA[1] == 1'b0) ? 32'b0 :
-                   (ALUSrcA == 2'b11) ? PC :
-                   32'bx;
+                (ALUSrcA[1] == 1'b0) ? 32'b0 :
+                (ALUSrcA == 2'b11) ? PC :
+                32'bx;
 
     assign Src_B = ALUSrcB ? ExtImm : RD2;
 
-    // PC Update Logic
+    //PC Update Logic
     assign PC_Offset = ExtImm;
+    
     assign PC_IN = (PCSrc == 2'b00) ? PC + 4 :
-                   (PCSrc == 2'b01) ? PC + ExtImm :
-                   (PCSrc == 2'b10) ? {ALUResult[31:1], 1'b0} :
-                   (PCSrc == 2'b11) ? {ALUResult[31:1], 1'b0} :
-                   PC + 4;
+               (PCSrc == 2'b01) ? PC + ExtImm :
+               (PCSrc == 2'b10) ? {ALUResult[31:1], 1'b0} :
+               (PCSrc == 2'b11) ? {ALUResult[31:1], 1'b0} :
+               PC + 4; // Default case
 
-    // WriteData for memory operations
+    //WriteData for memory operations
     assign WriteData = RD2;
 
-    // result selection
+    //result selcetion
     assign Result = MemtoReg ? ReadData : MCycleSelect ? MCycle_Result1 : ALUResult;
     assign WD = Result;
     assign WE = RegWrite;
-    
+	
     // Instantiate RegFile
     RegFile RegFile1( 
                     CLK,
@@ -159,7 +152,7 @@ module RV(
                     RD2     
                 );
                 
-    // Instantiate Extend Module
+     // Instantiate Extend Module
     Extend Extend1(
                     ImmSrc,
                     InstrImm,
@@ -185,12 +178,12 @@ module RV(
                 );
                 
     // Instantiate PC_Logic
-    PC_Logic PC_Logic1(
+	PC_Logic PC_Logic1(
                     PCS,
                     Funct3,
                     ALUFlags,
                     PCSrc
-    );
+		);
                 
     // Instantiate ALU        
     ALU ALU1(
@@ -222,7 +215,17 @@ module RV(
                     MCycle_Result2,
                     Busy
                 );
+//    assign FinalALUResult = MCycleSelect ? MCycle_Result1 : ALUResult;
     
-    assign FinalALUResult = MCycleSelect ? MCycle_Result1 : ALUResult;
-
+    // 4'b0000 -> mul, 4'b0010 -> mulh, 4'b0100 -> mulsu, 4'b0110 -> mulu
+    // 4'b1000 -> div, 4'b1010 -> divu
+    // 4'b1100 -> rem, 4'b1110 -> remu
+    
+    assign FinalALUResult = ~MCycleSelect ? ALUResult : 
+                            ((ALUControl == 4'b0000 || ALUControl == 4'b1000 || 
+                              ALUControl == 4'b1010) ? MCycle_Result1 : 
+                             (ALUControl == 4'b0010 || ALUControl == 4'b0100 || 
+                              ALUControl == 4'b0110 || ALUControl == 4'b1100 || 
+                              ALUControl == 4'b1110) ? MCycle_Result2 : 32'bx);
+    
 endmodule
