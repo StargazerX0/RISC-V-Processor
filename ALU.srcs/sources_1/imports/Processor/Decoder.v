@@ -58,7 +58,7 @@ module Decoder(
     begin
         case(Opcode)
 
-            7'h33:begin
+            7'h33:begin //DP Reg
                 PCS = 2'b00;
                 MemtoReg = 1'b0;
                 RegWrite = 1'b1;
@@ -69,7 +69,7 @@ module Decoder(
                 ALUControl = {Funct3, Funct7[5]};
             end
 
-            7'h13:begin
+            7'h13:begin //DP Imm
                 PCS = 2'b00;
                 MemtoReg = 1'b0;
                 RegWrite = 1'b1;
@@ -86,7 +86,7 @@ module Decoder(
                 end 
             end
 
-            7'h03:begin
+            7'h03:begin // Load
                 PCS = 2'b00;
                 MemtoReg = 1'b1;
                 RegWrite = 1'b1;
@@ -97,7 +97,7 @@ module Decoder(
                 ALUControl = 4'b0000;
             end
 
-            7'h23:begin
+            7'h23:begin //Store
                 PCS = 2'b00;
                 MemtoReg = 1'bx;
                 RegWrite = 1'b0;
@@ -108,7 +108,7 @@ module Decoder(
                 ALUControl = 4'b0000;
             end
 
-            7'h63:begin
+            7'h63:begin //Branch
                 PCS = 2'b01;
                 MemtoReg = 1'bx;
                 RegWrite = 1'b0;
@@ -119,7 +119,7 @@ module Decoder(
                 ALUControl = 4'b0001;
             end
 
-            7'h6F:begin
+            7'h6F:begin //Jump
                 PCS = 2'b10;
                 MemtoReg = 1'bx;
                 RegWrite = 1'b0;
@@ -130,7 +130,7 @@ module Decoder(
                 ALUControl = 4'b0000;
             end
 
-            7'h17:begin
+            7'h17:begin //auipc
                 PCS = 2'b00;
                 MemtoReg = 1'b0;
                 RegWrite = 1'b1;
@@ -141,7 +141,7 @@ module Decoder(
                 ALUControl = 4'b0000;
             end
 
-            7'h37:begin
+            7'h37:begin //lui
                 PCS = 2'b00;
                 MemtoReg = 1'b0;
                 RegWrite = 1'b1;
@@ -152,15 +152,15 @@ module Decoder(
                 ALUControl = 4'b0000;
             end
 
-            default:begin
-                PCS = 2'bxx;
-                MemtoReg = 1'bx;
-                RegWrite = 1'bx;
-                MemWrite = 1'bx;
-                ALUSrcA = 2'bxx;
-                ALUSrcB = 1'bx;
-                ImmSrc = 3'bxxx;
-                ALUControl = 4'bxxxx;
+            default:begin //unkown
+                PCS = 2'b00;
+                MemtoReg = 1'b0;
+                RegWrite = 1'b0;
+                MemWrite = 1'b0;
+                ALUSrcA = 2'b00;
+                ALUSrcB = 1'b0;
+                ImmSrc = 3'b000;
+                ALUControl = 4'b0000;
             end
             
         endcase

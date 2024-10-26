@@ -1,6 +1,5 @@
 `timescale 1ns / 1ps
-
-// ID/EX Pipeline Register with Enable and PC
+// ID/EX Pipeline Register with Enable, PC, and Funct3
 module ID_EX(
     input CLK,
     input RESET,
@@ -16,6 +15,7 @@ module ID_EX(
     input MCycleSelect_in,
     input [2:0] ImmSrc_in,
     input [1:0] PCS_in,          // Add PCS input
+    input [2:0] Funct3_in,       // Add Funct3 input
     // Data signals
     input [31:0] RD1_in,
     input [31:0] RD2_in,
@@ -35,6 +35,7 @@ module ID_EX(
     output reg MCycleSelect_EX,
     output reg [2:0] ImmSrc_EX,
     output reg [1:0] PCS_EX,      // Pass PCS to EX stage
+    output reg [2:0] Funct3_EX,   // Pass Funct3 to EX stage
     output reg [31:0] RD1_EX,
     output reg [31:0] RD2_EX,
     output reg [31:0] ExtImm_EX,
@@ -43,6 +44,7 @@ module ID_EX(
     output reg [4:0] rd_EX,
     output reg [31:0] PC_EX
 );
+
     always @(posedge CLK or posedge RESET) begin
         if (RESET) begin
             RegWrite_EX <= 0;
@@ -55,6 +57,7 @@ module ID_EX(
             MCycleSelect_EX <= 0;
             ImmSrc_EX <= 0;
             PCS_EX <= 0;
+            Funct3_EX <= 0;            // Initialize Funct3_EX
             RD1_EX <= 0;
             RD2_EX <= 0;
             ExtImm_EX <= 0;
@@ -73,6 +76,7 @@ module ID_EX(
             MCycleSelect_EX <= MCycleSelect_in;
             ImmSrc_EX <= ImmSrc_in;
             PCS_EX <= PCS_in;                    // Forward PCS
+            Funct3_EX <= Funct3_in;              // Forward Funct3
             RD1_EX <= RD1_in;
             RD2_EX <= RD2_in;
             ExtImm_EX <= ExtImm_in;
