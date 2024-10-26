@@ -6,7 +6,7 @@ Oct 14 2022
 /home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/CG3207-Lab3/MCycle.v,1729913906,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/MEM_WB.v,,MCycle,,,,,,,,
 /home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/CG3207-Lab3/test_MCycle.v,1728300511,verilog,,,,test_MCycle,,,,,,,,
 /home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/ALU.v,1729913906,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/Decoder.v,,ALU,,,,,,,,
-/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/Decoder.v,1729924317,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/EX_MEM.v,,Decoder,,,,,,,,
+/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/Decoder.v,1729931094,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/EX_MEM.v,,Decoder,,,,,,,,
 /home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/EX_MEM.v,1729913906,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/Extend.v,,EX_MEM,,,,,,,,
 /home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/Extend.v,1729913906,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/ID_EX.v,,Extend,,,,,,,,
 /home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/ID_EX.v,1729922878,verilog,,/home/stargazer/Desktop/CG3207-Lab3/ALU.srcs/sources_1/imports/Processor/IF_ID.v,,ID_EX,,,,,,,,

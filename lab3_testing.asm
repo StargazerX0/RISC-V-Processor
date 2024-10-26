@@ -20,8 +20,8 @@
 .globl main
 
 main:
-    la s2, DIPS
-    lw s3, 0(s2)
+    li s2, 1
+    li s3, 1
 
     # Initialize registers with some values
     li s4, 0x1
