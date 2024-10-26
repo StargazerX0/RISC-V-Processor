@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-// ID/EX Pipeline Register with Enable
+// ID/EX Pipeline Register with Enable and PC
 module ID_EX(
     input CLK,
     input RESET,
@@ -15,6 +15,7 @@ module ID_EX(
     input [1:0] MCycleOp_in,
     input MCycleSelect_in,
     input [2:0] ImmSrc_in,
+    input [1:0] PCS_in,          // Add PCS input
     // Data signals
     input [31:0] RD1_in,
     input [31:0] RD2_in,
@@ -22,7 +23,7 @@ module ID_EX(
     input [4:0] rs1_in,
     input [4:0] rs2_in,
     input [4:0] rd_in,
-    input [31:0] PC_in,
+    input [31:0] PC_in,          // PC input
     // Outputs
     output reg RegWrite_EX,
     output reg MemtoReg_EX,
@@ -33,6 +34,7 @@ module ID_EX(
     output reg [1:0] MCycleOp_EX,
     output reg MCycleSelect_EX,
     output reg [2:0] ImmSrc_EX,
+    output reg [1:0] PCS_EX,      // Pass PCS to EX stage
     output reg [31:0] RD1_EX,
     output reg [31:0] RD2_EX,
     output reg [31:0] ExtImm_EX,
@@ -52,6 +54,7 @@ module ID_EX(
             MCycleOp_EX <= 0;
             MCycleSelect_EX <= 0;
             ImmSrc_EX <= 0;
+            PCS_EX <= 0;
             RD1_EX <= 0;
             RD2_EX <= 0;
             ExtImm_EX <= 0;
@@ -69,6 +72,7 @@ module ID_EX(
             MCycleOp_EX <= MCycleOp_in;
             MCycleSelect_EX <= MCycleSelect_in;
             ImmSrc_EX <= ImmSrc_in;
+            PCS_EX <= PCS_in;                    // Forward PCS
             RD1_EX <= RD1_in;
             RD2_EX <= RD2_in;
             ExtImm_EX <= ExtImm_in;

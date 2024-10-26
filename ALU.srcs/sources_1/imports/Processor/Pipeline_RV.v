@@ -107,12 +107,37 @@ module Pipelined_RV(
     // Program Counter Logic
     // ---------------------------------
 
+    // Instruction Parsing
+    wire [6:0] Opcode_ID;
+    wire [2:0] Funct3_ID;
+    wire [6:0] Funct7_ID;
+    wire [1:0] PCS_ID;
+    wire [1:0] PCS_EX;
+
+    wire [1:0] PCSrc_EX;
+    // Instantiate PC_Logic
+    PC_Logic PC_Logic1(
+        .PCS(PCS_EX),
+        .Funct3(Funct3_ID),
+        .ALUFlags(ALUFlags_EX),
+        .PCSrc(PCSrc_EX)
+    );
+
+    wire [1:0] PCS_EX;
+    wire [31:0] PC_IN;
+    assign PC_IN = (PCSrc_EX== 2'b00) ? PC_IF + 4 :
+               (PCSrc_EX== 2'b01) ? PC_IF + ExtImm_EX :
+               (PCSrc_EX== 2'b10) ? {FinalALUResult[31:1], 1'b0} :
+               (PCSrc_EX== 2'b11) ? {FinalALUResult[31:1], 1'b0} :
+               PCSrc_EX + 4; // Default case
+
+
     // PC Update Logic with Stall
     ProgramCounter PC1(
         .CLK(CLK),
         .RESET(RESET),
         .WE_PC(~stall),    // Disable PC update when stalled
-        .PC_IN(PC_IF + 4),
+        .PC_IN(PC_IN),
         .PC(PC_IF)         // Corrected port connection from 'PC_OUT' to 'PC'
     );
 
@@ -137,12 +162,6 @@ module Pipelined_RV(
     // ---------------------------------
     // ID Stage
     // ---------------------------------
-
-    // Instruction Parsing
-    wire [6:0] Opcode_ID;
-    wire [2:0] Funct3_ID;
-    wire [6:0] Funct7_ID;
-    wire [1:0] PCS_ID;
 
     assign Opcode_ID = Instr_ID[6:0];
     assign Funct3_ID = Instr_ID[14:12];
@@ -207,6 +226,7 @@ module Pipelined_RV(
         .MCycleOp_in(MCycleOp_ID),
         .MCycleSelect_in(MCycleSelect_ID),
         .ImmSrc_in(ImmSrc_ID),
+        .PCS_in(PCS_ID), // Pass PCS from Decoder
         // Data signals
         .RD1_in(RD1_ID),
         .RD2_in(RD2_ID),
@@ -214,7 +234,7 @@ module Pipelined_RV(
         .rs1_in(rs1_ID),
         .rs2_in(rs2_ID),
         .rd_in(rd_ID),
-        .PC_in(PC_ID),
+        .PC_in(PC_ID),                // Pass PC from IF/ID to ID/EX
         // Outputs
         .RegWrite_EX(RegWrite_EX),
         .MemtoReg_EX(MemtoReg_EX),
@@ -225,13 +245,14 @@ module Pipelined_RV(
         .MCycleOp_EX(MCycleOp_EX),
         .MCycleSelect_EX(MCycleSelect_EX),
         .ImmSrc_EX(ImmSrc_EX),
+        .PCS_EX(PCS_EX),              // Output PCS to EX stage
         .RD1_EX(RD1_EX),
         .RD2_EX(RD2_EX),
         .ExtImm_EX(ExtImm_EX),
         .rs1_EX(rs1_EX),
         .rs2_EX(rs2_EX),
         .rd_EX(rd_EX),
-        .PC_EX(PC_EX)
+        .PC_EX(PC_EX)                // Output PC to EX stage
     );
 
     // ---------------------------------
@@ -249,14 +270,14 @@ module Pipelined_RV(
 
     // Instantiate ALU        
     wire [31:0] ALUResult_EX_internal;
-    wire [2:0] ALUFlags_EX_internal;
+
 
     ALU ALU1(
         .Src_A(Src_A_EX),
         .Src_B(Src_B_EX),
         .ALUControl(ALUControl_EX),
         .ALUResult(ALUResult_EX_internal),
-        .ALUFlags(ALUFlags_EX_internal)
+        .ALUFlags(ALUFlags_EX)
     );                
 
     // Instantiate MCycle
