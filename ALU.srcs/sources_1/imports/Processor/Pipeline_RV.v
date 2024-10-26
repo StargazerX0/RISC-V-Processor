@@ -97,7 +97,7 @@ wire [31:0] ALUResult_WB_Final;
 
 // Additional Wires
 wire [24:0] InstrImm_ID; // Declared InstrImm_ID
-wire [2:0] Funct3_EX;
+//wire [2:0] Funct3_EX;
 
 // ---------------------------------
 // Control and Stall Signals
