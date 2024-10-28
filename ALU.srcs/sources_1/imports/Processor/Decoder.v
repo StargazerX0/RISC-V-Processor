@@ -183,28 +183,26 @@ module Decoder(
         // Multi-Cycle Operation Logic
         // ----------------------------
         // Only specific R-type instructions initiate multi-cycle operations
-        if (Opcode == 7'h33 && Funct3 == 3'h0 && Funct7 == 7'h01) begin
-            MCycleStart = 1'b1;
-            MCycleOp = 2'b01;       // Example: Unsigned Multiply
-            MCycleSelect = 1'b1;    // Select MCycle result
-        end
-        else if (Opcode == 7'h33 && Funct3 == 3'h5 && Funct7 == 7'h01) begin
-            MCycleStart = 1'b1;
-            MCycleOp = 2'b11;       // Example: Unsigned Division
-            MCycleSelect = 1'b1;    // Select MCycle result
-        end
-        else if (Opcode == 7'h33 && Funct3 == 3'h4 && Funct7 == 7'h01) begin
-            MCycleStart = 1'b1;
-            MCycleOp = 2'b10;       // Example: Signed Division
-            MCycleSelect = 1'b1;    // Select MCycle result
-        end
-        else begin
-            MCycleStart = 1'b0;
-            MCycleOp = 2'b00;
-            MCycleSelect = 1'b0;
-        end
+        if (Opcode == 7'h33 && (Funct3 == 3'h2 || Funct3 == 3'h3) && Funct7 == 7'h01) begin
+                    MCycleStart = 1'b1;
+                    MCycleOp = 2'b01;       // Example: Unsigned Multiply
+                    MCycleSelect = 1'b1;    // Select MCycle result
+                end
+                else if (Opcode == 7'h33 && (Funct3 == 3'h5 || Funct3 == 3'h7) && Funct7 == 7'h01) begin
+                    MCycleStart = 1'b1;
+                    MCycleOp = 2'b11;       // Example: Unsigned Division
+                    MCycleSelect = 1'b1;    // Select MCycle result
+                end
+                else if (Opcode == 7'h33 && (Funct3 == 3'h4 || Funct3 == 3'h6) && Funct7 == 7'h01) begin
+                    MCycleStart = 1'b1;
+                    MCycleOp = 2'b10;       // Example: Signed Division
+                    MCycleSelect = 1'b1;    // Select MCycle result
+                end
+                else begin
+                    MCycleStart = 1'b0;
+                    MCycleOp = 2'b00;
+                    MCycleSelect = 1'b0;
+                end
     end
 
 endmodule
-
-
