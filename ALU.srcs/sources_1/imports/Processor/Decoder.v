@@ -117,7 +117,7 @@ module Decoder(
                 ImmSrc = 3'b110;        // Immediate source: S-type
                 ALUControl = 4'b0000;   // ALU operation: ADD (calculate address)
             end
-
+            
             7'h63: begin // Branch
                 PCS = 2'b01;            // Conditional branch
                 MemtoReg = 1'b0;        // Not used for branch
@@ -129,6 +129,17 @@ module Decoder(
                 ALUControl = 4'b0001;   // ALU operation: SUB (for comparison)
             end
 
+            7'h67: begin // JALR (Jump and Link Register)
+                PCS = 2'b11;            // Unconditional jump
+                MemtoReg = 1'b0;        // Not used for jump
+                RegWrite = 1'b1;        // Enable register write (link)
+                MemWrite = 1'b0;        // Disable memory write
+                ALUSrcA = 2'b11;        // ALU Source A: PC
+                ALUSrcB = 1'b1;         // ALU Source B: Immediate
+                ImmSrc = 3'b011;        // Immediate source: I-type
+                ALUControl = 4'b0000;   // ALU operation: ADD (PC + immediate)
+            end
+            
             7'h6F: begin // JAL (Jump and Link)
                 PCS = 2'b10;            // Unconditional jump
                 MemtoReg = 1'b0;        // Not used for jump
