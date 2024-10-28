@@ -134,9 +134,9 @@ PC_Logic PC_Logic1(
 // PC_IN should use ALUResult_EX instead of FinalALUResult
 wire [31:0] PC_IN;
 assign PC_IN = (PCSrc_EX == 2'b00) ? PC_IF + 4 :
-               (PCSrc_EX == 2'b01) ? PC_IF + ExtImm_EX :
-               (PCSrc_EX == 2'b10) ? {ALUResult_EX[31:1], 1'b0} :
-               (PCSrc_EX == 2'b11) ? {ALUResult_EX[31:1], 1'b0} :
+               (PCSrc_EX == 2'b01) ? PC_IF + ExtImm_EX - 8:
+               (PCSrc_EX == 2'b10) ? {ALUResult_EX[31:1], 1'b0} - 8:
+               (PCSrc_EX == 2'b11) ? RD1_EX + ExtImm_EX:
                PC_IF + 4; // Default case
 
 // PC Update Logic with Stall
