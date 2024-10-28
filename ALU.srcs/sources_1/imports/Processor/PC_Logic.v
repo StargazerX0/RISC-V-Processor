@@ -48,7 +48,7 @@ module PC_Logic( // This is a combinational module, unlike ARM. See the note bel
 	// todo: conditional logic goes here
 	always @(*)
 	begin
-	   PCSrc[1] = (PCS == 2'b10);
+	   PCSrc[1] = (PCS == 2'b11);
 	   case (PCS)
 	       2'b00: PCSrc[0] = 0;
 	       2'b01:
