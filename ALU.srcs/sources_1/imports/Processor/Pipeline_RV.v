@@ -307,16 +307,16 @@ MCycle MCycle1(
 // Final ALU Result considering MCycle
 //assign ALUResult_EX = MCycleSelect_EX ? MCycle_Result1 : ALUResult_EX_internal;
 
-// 4'b0000 -> mul, 4'b0010 -> mulh, 4'b0100 -> mulsu, 4'b0110 -> mulu
-// 4'b1000 -> div, 4'b1010 -> divu
-// 4'b1100 -> rem, 4'b1110 -> remu
-    
+// 3'h0 -> mul, 3'h1 -> mulh, 3'h2 -> mulsu, 3'h3 -> mulu
+// 3'h4 -> div, 4'h5 -> divu
+// 3'h6 -> rem, 4'h7 -> remu
+
 assign ALUResult_EX = ~MCycleSelect_EX ? ALUResult_EX_internal : 
-                        ((ALUControl_EX == 4'b0000 || ALUControl_EX == 4'b1000 || 
-                          ALUControl_EX == 4'b1010) ? MCycle_Result1 : 
-                         (ALUControl_EX == 4'b0010 || ALUControl_EX == 4'b0100 || 
-                          ALUControl_EX == 4'b0110 || ALUControl_EX == 4'b1100 || 
-                          ALUControl_EX == 4'b1110) ? MCycle_Result2 : 32'bx);
+                        ((Funct3_EX == 3'h0 || Funct3_EX == 3'h4 || 
+                          Funct3_EX == 3'h5) ? MCycle_Result1 : 
+                         (Funct3_EX == 3'h1 || Funct3_EX == 3'h3 || 
+                          Funct3_EX == 3'h6 || Funct3_EX == 3'h7) ? 
+                          MCycle_Result2 : 32'bx);    
 
 // ---------------------------------
 // EX/MEM Pipeline Register
