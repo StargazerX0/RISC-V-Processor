@@ -377,12 +377,12 @@ module Pipelined_RV(
     EX_MEM EX_MEM1(
         .CLK(CLK),
         .RESET(RESET),
-        .enable(~stall),
+        // Removed 'enable' signal
         .RegWrite_EX_in(RegWrite_EX),
         .MemtoReg_EX_in(MemtoReg_EX),
         .MemWrite_EX_in(MemWrite_EX),
         .ALUResult_in(ALUResult_EX),
-        .RD2_EX_in(Forwarded_RD2), // Use forwarded RD2
+        .RD2_EX_in(Forwarded_RD2),
         .rd_EX_in(rd_EX),
         .RegWrite_MEM(RegWrite_MEM),
         .MemtoReg_MEM(MemtoReg_MEM),
@@ -413,7 +413,7 @@ module Pipelined_RV(
     MEM_WB MEM_WB1(
         .CLK(CLK),
         .RESET(RESET),
-        .enable(~stall),
+        // Removed 'enable' signal
         .RegWrite_MEM_in(RegWrite_MEM),
         .MemtoReg_MEM_in(MemtoReg_MEM),
         .ReadData_in(ReadData_MEM),

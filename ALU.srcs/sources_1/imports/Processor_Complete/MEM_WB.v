@@ -4,7 +4,6 @@
 module MEM_WB(
     input CLK,
     input RESET,
-    input enable,
     input RegWrite_MEM_in,
     input MemtoReg_MEM_in,
     input [31:0] ReadData_in,
@@ -23,7 +22,7 @@ module MEM_WB(
             ReadData_WB <= 0;
             ALUResult_WB <= 0;
             rd_WB <= 0;
-        end else if (enable) begin
+        end else begin
             RegWrite_WB <= RegWrite_MEM_in;
             MemtoReg_WB <= MemtoReg_MEM_in;
             ReadData_WB <= ReadData_in;

@@ -4,7 +4,6 @@
 module EX_MEM(
     input CLK,
     input RESET,
-    input enable,
     input RegWrite_EX_in,
     input MemtoReg_EX_in,
     input MemWrite_EX_in,      // Added MemWrite_EX_in
@@ -26,7 +25,7 @@ module EX_MEM(
             ALUResult_MEM <= 0;
             RD2_MEM <= 0;
             rd_MEM <= 0;
-        end else if (enable) begin
+        end else begin
             RegWrite_MEM <= RegWrite_EX_in;
             MemtoReg_MEM <= MemtoReg_EX_in;
             MemWrite_MEM <= MemWrite_EX_in;  // Assign MemWrite_MEM
