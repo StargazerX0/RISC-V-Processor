@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // ID/EX Pipeline Register with Enable and Flush
-module ID_EX(
+module ID_EX_Complete(
     input CLK,
     input RESET,
     input enable,

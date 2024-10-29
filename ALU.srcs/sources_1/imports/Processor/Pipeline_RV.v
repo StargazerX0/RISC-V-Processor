@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // Main Pipelined RISC-V Processor with MCycle Integration
-module Pipelined_RV(
+module Complete_Pipelined_RV(
     input CLK,
     input RESET,
     //input Interrupt,  

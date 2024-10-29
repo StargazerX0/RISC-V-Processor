@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // Main Pipelined RISC-V Processor with Data Forwarding and Hazard Detection
-module Pipelined_RV(
+module Complete_Pipelined_RV(
     input CLK,
     input RESET,
     //input Interrupt,  
@@ -156,7 +156,7 @@ module Pipelined_RV(
     // IF/ID Pipeline Register
     // ---------------------------------
     
-    IF_ID IF_ID1(
+    IF_ID_Complete IF_ID1(
         .CLK(CLK),
         .RESET(RESET),
         .enable(~stall),
@@ -220,7 +220,7 @@ module Pipelined_RV(
     // ID/EX Pipeline Register
     // ---------------------------------
     
-    ID_EX ID_EX1(
+    ID_EX_Complete ID_EX1(
         .CLK(CLK),
         .RESET(RESET),
         .enable(~stall),
@@ -374,7 +374,7 @@ module Pipelined_RV(
     // EX/MEM Pipeline Register
     // ---------------------------------
     
-    EX_MEM EX_MEM1(
+    EX_MEM_Complete EX_MEM1(
         .CLK(CLK),
         .RESET(RESET),
         // Removed 'enable' signal
@@ -410,7 +410,7 @@ module Pipelined_RV(
     // MEM/WB Pipeline Register
     // ---------------------------------
     
-    MEM_WB MEM_WB1(
+    MEM_WB_Complete MEM_WB1(
         .CLK(CLK),
         .RESET(RESET),
         // Removed 'enable' signal

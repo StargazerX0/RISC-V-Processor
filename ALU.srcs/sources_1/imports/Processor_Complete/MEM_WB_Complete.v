@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // MEM/WB Pipeline Register with Enable
-module MEM_WB(
+module MEM_WB_Complete(
     input CLK,
     input RESET,
     input RegWrite_MEM_in,

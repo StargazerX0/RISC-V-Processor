@@ -1,11 +1,1175 @@
-00500413
-ffd00493
-02940933
-80000437
-00040413
-00200493
-029439b3
-01400413
-00300493
-02945a33
-000000ef
+I am implementing one pipelined risc v processor with five stages: IF, ID, EX, MEM, WB in verilog
+here is the pipelined_rv.v
+"""
+// Main Pipelined RISC-V Processor with MCycle Integration
+module Pipelined_RV(
+    input CLK,
+    input RESET,
+    //input Interrupt,  
+    input [31:0] Instr,           // Instruction input for the current PC
+    input [31:0] ReadData_in,     // Data read from memory (e.g., load instructions)
+    output MemRead,               // Memory read enable signal
+    output [3:0] MemWrite_out,    // Memory write enable signal (supports sb/sh)
+    output [31:0] PC,             // Current Program Counter value
+    output [31:0] FinalALUResult, // Final ALU result after pipeline
+    output [31:0] WriteData_out   // Data to write to memory (e.g., store instructions)
+    );
+
+// ---------------------------------
+// Pipeline Stage Wires
+// ---------------------------------
+
+// IF Stage
+wire [31:0] PC_IF;
+wire [31:0] Instr_IF;
+
+// IF/ID Pipeline Register
+wire [31:0] PC_ID;
+wire [31:0] Instr_ID;
+
+// ID Stage
+wire [31:0] RD1_ID;
+wire [31:0] RD2_ID;
+wire [31:0] ExtImm_ID;
+wire [4:0] rs1_ID;
+wire [4:0] rs2_ID;
+wire [4:0] rd_ID;
+
+// Control Signals ID Stage
+wire RegWrite_ID;
+wire MemtoReg_ID;
+wire [1:0] ALUSrcA_ID;
+wire ALUSrcB_ID;
+wire [3:0] ALUControl_ID;
+wire MCycleStart_ID;
+wire [1:0] MCycleOp_ID;
+wire MCycleSelect_ID;
+wire [2:0] ImmSrc_ID;
+
+// ID/EX Pipeline Register
+wire [31:0] RD1_EX;
+wire [31:0] RD2_EX;
+wire [31:0] ExtImm_EX;
+wire [4:0] rs1_EX;
+wire [4:0] rs2_EX;
+wire [4:0] rd_EX;
+wire [31:0] PC_EX;
+wire RegWrite_EX;
+wire MemtoReg_EX;
+wire [1:0] ALUSrcA_EX;
+wire ALUSrcB_EX;
+wire [3:0] ALUControl_EX;
+wire MCycleStart_EX;
+wire [1:0] MCycleOp_EX;
+wire MCycleSelect_EX;
+wire [2:0] ImmSrc_EX;
+wire [1:0] PCS_EX;
+wire [2:0] Funct3_EX; // Added Funct3_EX
+
+// EX Stage
+wire [31:0] Src_A_EX;
+wire [31:0] Src_B_EX;
+wire [31:0] ALUResult_EX;
+wire [2:0] ALUFlags_EX;
+
+// EX/MEM Pipeline Register
+wire [31:0] ALUResult_MEM;
+wire [31:0] RD2_MEM;
+wire [4:0] rd_MEM;
+wire RegWrite_MEM;
+wire MemtoReg_MEM;
+wire MemWrite_MEM;  // Declared MemWrite_MEM
+
+// MEM Stage
+wire [31:0] ReadData_MEM;
+
+// MEM/WB Pipeline Register
+wire [31:0] ReadData_WB;
+wire [31:0] ALUResult_WB;
+wire [4:0] rd_WB;
+wire RegWrite_WB;
+wire MemtoReg_WB;
+
+// Write Back Stage
+wire [31:0] WD_WB;
+
+// Final ALU Result
+wire [31:0] ALUResult_WB_Final;
+
+// Additional Wires
+wire [24:0] InstrImm_ID; // Declared InstrImm_ID
+//wire [2:0] Funct3_EX;
+
+// ---------------------------------
+// Control and Stall Signals
+// ---------------------------------
+
+wire Busy;       // From MCycle module indicating multi-cycle operation
+wire stall;      // Stall signal based on Busy
+
+// Generate Stall Signal
+assign stall = Busy;
+
+// ---------------------------------
+// Program Counter Logic
+// ---------------------------------
+
+// Instruction Parsing
+wire [6:0] Opcode_ID;
+wire [2:0] Funct3_ID;
+wire [6:0] Funct7_ID;
+wire [1:0] PCS_ID;
+
+// Removed duplicate declaration of PCS_EX
+
+wire [1:0] PCSrc_EX;
+
+// Instantiate PC_Logic
+PC_Logic PC_Logic1(
+    .PCS(PCS_EX),
+    .Funct3(Funct3_EX),       // Changed from Funct3_ID to Funct3_EX
+    .ALUFlags(ALUFlags_EX),
+    .PCSrc(PCSrc_EX)
+);
+
+// PC_IN should use ALUResult_EX instead of FinalALUResult
+wire [31:0] PC_IN;
+assign PC_IN = (PCSrc_EX == 2'b00) ? PC_IF + 4 :
+               (PCSrc_EX == 2'b01) ? PC_IF + ExtImm_EX - 8:
+               (PCSrc_EX == 2'b10) ? {ALUResult_EX[31:1], 1'b0} - 8:
+               (PCSrc_EX == 2'b11) ? RD1_EX + ExtImm_EX:
+               PC_IF + 4; // Default case
+
+// PC Update Logic with Stall
+ProgramCounter PC1(
+    .CLK(CLK),
+    .RESET(RESET),
+    .WE_PC(~stall),    // Disable PC update when stalled
+    .PC_IN(PC_IN),
+    .PC(PC_IF)         // Corrected port connection from 'PC_OUT' to 'PC'
+);
+
+// Instruction Memory Fetch
+// Instr_IF is directly assigned from the Instr input
+assign Instr_IF = Instr;
+
+// ---------------------------------
+// IF/ID Pipeline Register
+// ---------------------------------
+
+IF_ID IF_ID1(
+    .CLK(CLK),
+    .RESET(RESET),
+    .enable(~stall),  // Disable IF/ID update when stalled
+    .PC_IF(PC_IF),
+    .Instr_IF(Instr_IF),
+    .PC_ID(PC_ID),
+    .Instr_ID(Instr_ID)
+);
+
+// ---------------------------------
+// ID Stage
+// ---------------------------------
+
+assign Opcode_ID = Instr_ID[6:0];
+assign Funct3_ID = Instr_ID[14:12];
+assign Funct7_ID = Instr_ID[31:25];
+assign rs1_ID = Instr_ID[19:15];
+assign rs2_ID = Instr_ID[24:20];
+assign rd_ID = Instr_ID[11:7];
+assign InstrImm_ID = Instr_ID[31:7]; // Now declared
+
+// Instantiate RegFile
+RegFile RegFile1( 
+    .CLK(CLK),
+    .WE(RegWrite_WB),
+    .rs1(rs1_ID),
+    .rs2(rs2_ID),
+    .rd(rd_WB),        // From MEM/WB stage
+    .WD(WD_WB),
+    .RD1(RD1_ID),
+    .RD2(RD2_ID)     
+);
+
+// Instantiate Extend Module
+Extend Extend1(
+    .ImmSrc(ImmSrc_ID),
+    .InstrImm(InstrImm_ID),
+    .ExtImm(ExtImm_ID)
+);
+
+// Instantiate Decoder
+Decoder Decoder1(
+    .Opcode(Opcode_ID),
+    .Funct3(Funct3_ID),
+    .Funct7(Funct7_ID),
+    .PCS(PCS_ID),
+    .RegWrite(RegWrite_ID),
+    .MemWrite(MemWrite_ID),
+    .MemtoReg(MemtoReg_ID),
+    .ALUSrcA(ALUSrcA_ID),
+    .ALUSrcB(ALUSrcB_ID),
+    .ImmSrc(ImmSrc_ID),
+    .ALUControl(ALUControl_ID),
+    .MCycleStart(MCycleStart_ID),
+    .MCycleOp(MCycleOp_ID),
+    .MCycleSelect(MCycleSelect_ID)
+);
+
+// ---------------------------------
+// ID/EX Pipeline Register
+// ---------------------------------
+
+ID_EX ID_EX1(
+    .CLK(CLK),
+    .RESET(RESET),
+    .enable(~stall),  // Disable ID/EX update when stalled
+    // Control signals
+    .RegWrite_in(RegWrite_ID),
+    .MemtoReg_in(MemtoReg_ID),
+    .ALUSrcA_in(ALUSrcA_ID),
+    .ALUSrcB_in(ALUSrcB_ID),
+    .ALUControl_in(ALUControl_ID),
+    .MCycleStart_in(MCycleStart_ID),
+    .MCycleOp_in(MCycleOp_ID),
+    .MCycleSelect_in(MCycleSelect_ID),
+    .ImmSrc_in(ImmSrc_ID),
+    .PCS_in(PCS_ID),         // Pass PCS from Decoder
+    .Funct3_in(Funct3_ID),   // Pass Funct3 from ID stage
+    // Data signals
+    .RD1_in(RD1_ID),
+    .RD2_in(RD2_ID),
+    .ExtImm_in(ExtImm_ID),
+    .rs1_in(rs1_ID),
+    .rs2_in(rs2_ID),
+    .rd_in(rd_ID),
+    .PC_in(PC_ID),            // Pass PC from IF/ID to ID/EX
+    // Outputs
+    .RegWrite_EX(RegWrite_EX),
+    .MemtoReg_EX(MemtoReg_EX),
+    .ALUSrcA_EX(ALUSrcA_EX),
+    .ALUSrcB_EX(ALUSrcB_EX),
+    .ALUControl_EX(ALUControl_EX),
+    .MCycleStart_EX(MCycleStart_EX),
+    .MCycleOp_EX(MCycleOp_EX),
+    .MCycleSelect_EX(MCycleSelect_EX),
+    .ImmSrc_EX(ImmSrc_EX),
+    .PCS_EX(PCS_EX),          // Output PCS to EX stage
+    .Funct3_EX(Funct3_EX),    // Output Funct3_EX
+    .RD1_EX(RD1_EX),
+    .RD2_EX(RD2_EX),
+    .ExtImm_EX(ExtImm_EX),
+    .rs1_EX(rs1_EX),
+    .rs2_EX(rs2_EX),
+    .rd_EX(rd_EX),
+    .PC_EX(PC_EX)
+);
+
+// ---------------------------------
+// EX Stage
+// ---------------------------------
+
+// ALU Source A Selection
+assign Src_A_EX = (ALUSrcA_EX[0] == 1'b0) ? RD1_EX :
+                  (ALUSrcA_EX[1] == 1'b0) ? 32'b0 :
+                  (ALUSrcA_EX == 2'b11) ? PC_EX :
+                  32'bx;
+
+// ALU Source B Selection
+assign Src_B_EX = ALUSrcB_EX ? ExtImm_EX : RD2_EX;
+
+// Instantiate ALU        
+wire [31:0] ALUResult_EX_internal;
+
+ALU ALU1(
+    .Src_A(Src_A_EX),
+    .Src_B(Src_B_EX),
+    .ALUControl(ALUControl_EX),
+    .ALUResult(ALUResult_EX_internal),
+    .ALUFlags(ALUFlags_EX)
+);                
+
+// Instantiate MCycle
+wire [31:0] MCycle_Result1;
+wire [31:0] MCycle_Result2;
+
+MCycle MCycle1(
+    .CLK(CLK),
+    .RESET(RESET),
+    .Start(MCycleStart_EX),
+    .MCycleOp(MCycleOp_EX),
+    .Operand1(RD1_EX),
+    .Operand2(RD2_EX),
+    .Result1(MCycle_Result1), // LSW of Product / Quotient
+    .Result2(MCycle_Result2), // MSW of Product / Remainder
+    .Busy(Busy)
+);
+
+// Final ALU Result considering MCycle
+//assign ALUResult_EX = MCycleSelect_EX ? MCycle_Result1 : ALUResult_EX_internal;
+
+// 3'h0 -> mul, 3'h1 -> mulh, 3'h2 -> mulsu, 3'h3 -> mulu
+// 3'h4 -> div, 4'h5 -> divu
+// 3'h6 -> rem, 4'h7 -> remu
+
+assign ALUResult_EX = ~MCycleSelect_EX ? ALUResult_EX_internal : 
+                        ((Funct3_EX == 3'h0 || Funct3_EX == 3'h4 || 
+                          Funct3_EX == 3'h5) ? MCycle_Result1 : 
+                         (Funct3_EX == 3'h1 || Funct3_EX == 3'h3 || 
+                          Funct3_EX == 3'h6 || Funct3_EX == 3'h7) ? 
+                          MCycle_Result2 : 32'bx);    
+
+// ---------------------------------
+// EX/MEM Pipeline Register
+// ---------------------------------
+
+EX_MEM EX_MEM1(
+    .CLK(CLK),
+    .RESET(RESET),
+    .enable(~stall),          // Disable EX/MEM update when stalled
+    .RegWrite_EX_in(RegWrite_EX),
+    .MemtoReg_EX_in(MemtoReg_EX),
+    .MemWrite_EX_in(MemWrite_EX),  // Changed from MemWrite_ID to MemWrite_EX
+    .ALUResult_in(ALUResult_EX),
+    .RD2_EX_in(RD2_EX),
+    .rd_EX_in(rd_EX),
+    .RegWrite_MEM(RegWrite_MEM),
+    .MemtoReg_MEM(MemtoReg_MEM),
+    .MemWrite_MEM(MemWrite_MEM),    // Receive MemWrite_MEM from EX_MEM
+    .ALUResult_MEM(ALUResult_MEM),
+    .RD2_MEM(RD2_MEM),
+    .rd_MEM(rd_MEM)
+);
+
+// ---------------------------------
+// MEM Stage
+// ---------------------------------
+
+// Memory operations
+// For demonstration, connecting ReadData_MEM directly
+// In practice, instantiate a memory module here
+assign ReadData_MEM = ReadData_in;
+
+// Control Signals for Memory
+assign MemRead = MemtoReg_MEM;                // Proper functionality for devices like UART CONSOLE
+assign MemWrite_out = {4{MemWrite_MEM}};      // Support sb/sh by replicating MemWrite_MEM
+assign WriteData_out = RD2_MEM;               // Data to write to memory
+
+// ---------------------------------
+// MEM/WB Pipeline Register
+// ---------------------------------
+
+MEM_WB MEM_WB1(
+    .CLK(CLK),
+    .RESET(RESET),
+    .enable(~stall),                          // Disable MEM/WB update when stalled
+    .RegWrite_MEM_in(RegWrite_MEM),
+    .MemtoReg_MEM_in(MemtoReg_MEM),
+    .ReadData_in(ReadData_MEM),
+    .ALUResult_in(ALUResult_MEM),
+    .rd_MEM_in(rd_MEM),
+    .RegWrite_WB(RegWrite_WB),
+    .MemtoReg_WB(MemtoReg_WB),
+    .ReadData_WB(ReadData_WB),
+    .ALUResult_WB(ALUResult_WB),
+    .rd_WB(rd_WB)
+);
+
+// ---------------------------------
+// Write Back Stage
+// ---------------------------------
+
+// Write Back Data Selection
+assign WD_WB = MemtoReg_WB ? ReadData_WB : ALUResult_WB;
+
+// Removed unused assignments
+// assign WD_ID = WD_WB;
+// assign WE_ID = RegWrite_WB;
+
+// Final ALU Result Output
+assign FinalALUResult = ALUResult_WB;
+
+// PC Output
+assign PC = PC_IF;
+
+endmodule
+"""
+here are the register walls
+"""
+// IF/ID Pipeline Register with Enable
+module IF_ID(
+    input CLK,
+    input RESET,
+    input enable,
+    input [31:0] PC_IF,
+    input [31:0] Instr_IF,
+    output reg [31:0] PC_ID,
+    output reg [31:0] Instr_ID
+);
+    always @(posedge CLK or posedge RESET) begin
+        if (RESET) begin
+            PC_ID <= 0;
+            Instr_ID <= 0;
+        end else if (enable) begin
+            PC_ID <= PC_IF;
+            Instr_ID <= Instr_IF;
+        end
+    end
+endmodule
+// ID/EX Pipeline Register with Enable, PC, and Funct3
+module ID_EX(
+    input CLK,
+    input RESET,
+    input enable,
+    // Control signals
+    input RegWrite_in,
+    input MemtoReg_in,
+    input [1:0] ALUSrcA_in,
+    input ALUSrcB_in,
+    input [3:0] ALUControl_in,
+    input MCycleStart_in,
+    input [1:0] MCycleOp_in,
+    input MCycleSelect_in,
+    input [2:0] ImmSrc_in,
+    input [1:0] PCS_in,          // Add PCS input
+    input [2:0] Funct3_in,       // Add Funct3 input
+    // Data signals
+    input [31:0] RD1_in,
+    input [31:0] RD2_in,
+    input [31:0] ExtImm_in,
+    input [4:0] rs1_in,
+    input [4:0] rs2_in,
+    input [4:0] rd_in,
+    input [31:0] PC_in,          // PC input
+    // Outputs
+    output reg RegWrite_EX,
+    output reg MemtoReg_EX,
+    output reg [1:0] ALUSrcA_EX,
+    output reg ALUSrcB_EX,
+    output reg [3:0] ALUControl_EX,
+    output reg MCycleStart_EX,
+    output reg [1:0] MCycleOp_EX,
+    output reg MCycleSelect_EX,
+    output reg [2:0] ImmSrc_EX,
+    output reg [1:0] PCS_EX,      // Pass PCS to EX stage
+    output reg [2:0] Funct3_EX,   // Pass Funct3 to EX stage
+    output reg [31:0] RD1_EX,
+    output reg [31:0] RD2_EX,
+    output reg [31:0] ExtImm_EX,
+    output reg [4:0] rs1_EX,
+    output reg [4:0] rs2_EX,
+    output reg [4:0] rd_EX,
+    output reg [31:0] PC_EX
+);
+
+    always @(posedge CLK or posedge RESET) begin
+        if (RESET) begin
+            RegWrite_EX <= 0;
+            MemtoReg_EX <= 0;
+            ALUSrcA_EX <= 0;
+            ALUSrcB_EX <= 0;
+            ALUControl_EX <= 0;
+            MCycleStart_EX <= 0;
+            MCycleOp_EX <= 0;
+            MCycleSelect_EX <= 0;
+            ImmSrc_EX <= 0;
+            PCS_EX <= 0;
+            Funct3_EX <= 0;            // Initialize Funct3_EX
+            RD1_EX <= 0;
+            RD2_EX <= 0;
+            ExtImm_EX <= 0;
+            rs1_EX <= 0;
+            rs2_EX <= 0;
+            rd_EX <= 0;
+            PC_EX <= 0;
+        end else if (enable) begin
+            RegWrite_EX <= RegWrite_in;
+            MemtoReg_EX <= MemtoReg_in;
+            ALUSrcA_EX <= ALUSrcA_in;
+            ALUSrcB_EX <= ALUSrcB_in;
+            ALUControl_EX <= ALUControl_in;
+            MCycleStart_EX <= MCycleStart_in;
+            MCycleOp_EX <= MCycleOp_in;
+            MCycleSelect_EX <= MCycleSelect_in;
+            ImmSrc_EX <= ImmSrc_in;
+            PCS_EX <= PCS_in;                    // Forward PCS
+            Funct3_EX <= Funct3_in;              // Forward Funct3
+            RD1_EX <= RD1_in;
+            RD2_EX <= RD2_in;
+            ExtImm_EX <= ExtImm_in;
+            rs1_EX <= rs1_in;
+            rs2_EX <= rs2_in;
+            rd_EX <= rd_in;
+            PC_EX <= PC_in;
+        end
+    end
+endmodule
+// EX/MEM Pipeline Register with Enable and MemWrite
+module EX_MEM(
+    input CLK,
+    input RESET,
+    input enable,
+    input RegWrite_EX_in,
+    input MemtoReg_EX_in,
+    input MemWrite_EX_in,      // Added MemWrite_EX_in
+    input [31:0] ALUResult_in,
+    input [31:0] RD2_EX_in,
+    input [4:0] rd_EX_in,
+    output reg RegWrite_MEM,
+    output reg MemtoReg_MEM,
+    output reg MemWrite_MEM,    // Added MemWrite_MEM
+    output reg [31:0] ALUResult_MEM,
+    output reg [31:0] RD2_MEM,
+    output reg [4:0] rd_MEM
+);
+    always @(posedge CLK or posedge RESET) begin
+        if (RESET) begin
+            RegWrite_MEM <= 0;
+            MemtoReg_MEM <= 0;
+            MemWrite_MEM <= 0;    // Initialize MemWrite_MEM
+            ALUResult_MEM <= 0;
+            RD2_MEM <= 0;
+            rd_MEM <= 0;
+        end else if (enable) begin
+            RegWrite_MEM <= RegWrite_EX_in;
+            MemtoReg_MEM <= MemtoReg_EX_in;
+            MemWrite_MEM <= MemWrite_EX_in;  // Assign MemWrite_MEM
+            ALUResult_MEM <= ALUResult_in;
+            RD2_MEM <= RD2_EX_in;
+            rd_MEM <= rd_EX_in;
+        end
+    end
+endmodule
+// MEM/WB Pipeline Register with Enable
+module MEM_WB(
+    input CLK,
+    input RESET,
+    input enable,
+    input RegWrite_MEM_in,
+    input MemtoReg_MEM_in,
+    input [31:0] ReadData_in,
+    input [31:0] ALUResult_in,
+    input [4:0] rd_MEM_in,
+    output reg RegWrite_WB,
+    output reg MemtoReg_WB,
+    output reg [31:0] ReadData_WB,
+    output reg [31:0] ALUResult_WB,
+    output reg [4:0] rd_WB
+);
+    always @(posedge CLK or posedge RESET) begin
+        if (RESET) begin
+            RegWrite_WB <= 0;
+            MemtoReg_WB <= 0;
+            ReadData_WB <= 0;
+            ALUResult_WB <= 0;
+            rd_WB <= 0;
+        end else if (enable) begin
+            RegWrite_WB <= RegWrite_MEM_in;
+            MemtoReg_WB <= MemtoReg_MEM_in;
+            ReadData_WB <= ReadData_in;
+            ALUResult_WB <= ALUResult_in;
+            rd_WB <= rd_MEM_in;
+        end
+    end
+endmodule
+"""
+here is the decoder
+"""
+module Decoder(
+    input [6:0] Opcode,
+    input [2:0] Funct3,
+    input [6:0] Funct7,
+    output reg [1:0] PCS,           // 00: Non-control, 01: Conditional branch, 10: JAL, 11: JALR
+    output reg RegWrite,            // Register write enable
+    output reg MemWrite,            // Memory write enable
+    output reg MemtoReg,            // Memory to register enable (for load instructions)
+    output reg [1:0] ALUSrcA,       // ALU Source A selector
+    output reg ALUSrcB,             // ALU Source B selector
+    output reg [2:0] ImmSrc,        // Immediate source selector
+    output reg [3:0] ALUControl,    // ALU operation control
+    output reg MCycleStart,         // Multi-cycle operation start
+    output reg [1:0] MCycleOp,      // Multi-cycle operation type
+    output reg MCycleSelect         // Multi-cycle operation selection
+); 
+
+    // Combined always block for control signal assignments and multi-cycle logic
+    always @ (*) begin
+        // ----------------------------
+        // Default Assignments
+        // ----------------------------
+        PCS = 2'b00;               // Default: Non-control (sequential execution)
+        MemtoReg = 1'b0;           // Default: No memory to register transfer
+        RegWrite = 1'b0;           // Default: No register write
+        MemWrite = 1'b0;           // Default: No memory write
+        ALUSrcA = 2'b00;           // Default: ALU Source A = Register rs1
+        ALUSrcB = 1'b0;            // Default: ALU Source B = Register rs2
+        ImmSrc = 3'b000;           // Default: Immediate not used
+        ALUControl = 4'b0000;      // Default: ALU operation = ADD
+        MCycleStart = 1'b0;        // Default: No multi-cycle operation
+        MCycleOp = 2'b00;          // Default: No specific multi-cycle operation
+        MCycleSelect = 1'b0;       // Default: Use ALU result, not MCycle result
+
+        // ----------------------------
+        // Opcode-Based Control Signal Assignments
+        // ----------------------------
+        case (Opcode)
+            7'h33: begin // R-type (DP Reg)
+                PCS = 2'b00;            // Non-control
+                MemtoReg = 1'b0;        // No memory to register transfer
+                RegWrite = 1'b1;        // Enable register write
+                MemWrite = 1'b0;        // Disable memory write
+                ALUSrcA = 2'b10;        // ALU Source A: Register rs1
+                ALUSrcB = 1'b0;         // ALU Source B: Register rs2
+                ImmSrc = 3'b000;        // Immediate not used for R-type
+                ALUControl = {Funct3, Funct7[5]}; // ALU operation based on Funct3 and Funct7[5]
+            end
+
+            7'h13: begin // I-type (DP Imm)
+                PCS = 2'b00;            // Non-control
+                MemtoReg = 1'b0;        // No memory to register transfer
+                RegWrite = 1'b1;        // Enable register write
+                MemWrite = 1'b0;        // Disable memory write
+                ALUSrcA = 2'b10;        // ALU Source A: Register rs1
+                ALUSrcB = 1'b1;         // ALU Source B: Immediate
+                ImmSrc = 3'b011;        // Immediate source: I-type
+                ALUControl[3:1] = Funct3; // ALU operation based on Funct3
+                if (Funct3 == 3'h5) begin // SRAI or SRLI based on Funct7[5]
+                    ALUControl[0] = Funct7[5];
+                end else begin
+                    ALUControl[0] = 1'b0; // Default for other I-type instructions
+                end 
+            end
+
+            7'h03: begin // Load
+                PCS = 2'b00;            // Non-control
+                MemtoReg = 1'b1;        // Memory to register transfer
+                RegWrite = 1'b1;        // Enable register write
+                MemWrite = 1'b0;        // Disable memory write
+                ALUSrcA = 2'b10;        // ALU Source A: Register rs1
+                ALUSrcB = 1'b1;         // ALU Source B: Immediate
+                ImmSrc = 3'b011;        // Immediate source: I-type
+                ALUControl = 4'b0000;   // ALU operation: ADD (calculate address)
+            end
+
+            7'h23: begin // Store
+                PCS = 2'b00;            // Non-control
+                MemtoReg = 1'b0;        // Not used for store
+                RegWrite = 1'b0;        // Disable register write
+                MemWrite = 1'b1;        // Enable memory write
+                ALUSrcA = 2'b10;        // ALU Source A: Register rs1
+                ALUSrcB = 1'b1;         // ALU Source B: Immediate
+                ImmSrc = 3'b110;        // Immediate source: S-type
+                ALUControl = 4'b0000;   // ALU operation: ADD (calculate address)
+            end
+            
+            7'h63: begin // Branch
+                PCS = 2'b01;            // Conditional branch
+                MemtoReg = 1'b0;        // Not used for branch
+                RegWrite = 1'b0;        // Disable register write
+                MemWrite = 1'b0;        // Disable memory write
+                ALUSrcA = 2'b10;        // ALU Source A: Register rs1
+                ALUSrcB = 1'b0;         // ALU Source B: Register rs2
+                ImmSrc = 3'b111;        // Immediate source: SB-type
+                ALUControl = 4'b0001;   // ALU operation: SUB (for comparison)
+            end
+
+            7'h67: begin // JALR (Jump and Link Register)
+                PCS = 2'b11;            // Unconditional jump
+                MemtoReg = 1'b0;        // Not used for jump
+                RegWrite = 1'b1;        // Enable register write (link)
+                MemWrite = 1'b0;        // Disable memory write
+                ALUSrcA = 2'b11;        // ALU Source A: PC
+                ALUSrcB = 1'b1;         // ALU Source B: Immediate
+                ImmSrc = 3'b011;        // Immediate source: I-type
+                ALUControl = 4'b0000;   // ALU operation: ADD (PC + immediate)
+            end
+            
+            7'h6F: begin // JAL (Jump and Link)
+                PCS = 2'b10;            // Unconditional jump
+                MemtoReg = 1'b0;        // Not used for jump
+                RegWrite = 1'b1;        // Enable register write (link)
+                MemWrite = 1'b0;        // Disable memory write
+                ALUSrcA = 2'b11;        // ALU Source A: PC
+                ALUSrcB = 1'b1;         // ALU Source B: Immediate
+                ImmSrc = 3'b010;        // Immediate source: UJ-type
+                ALUControl = 4'b0000;   // ALU operation: ADD (PC + immediate)
+            end
+
+            7'h17: begin // AUIPC
+                PCS = 2'b00;            // Non-control
+                MemtoReg = 1'b0;        // No memory to register transfer
+                RegWrite = 1'b1;        // Enable register write
+                MemWrite = 1'b0;        // Disable memory write
+                ALUSrcA = 2'b11;        // ALU Source A: PC
+                ALUSrcB = 1'b1;         // ALU Source B: Immediate
+                ImmSrc = 3'b000;        // Immediate source: U-type
+                ALUControl = 4'b0000;   // ALU operation: ADD (PC + immediate)
+            end
+
+            7'h37: begin // LUI
+                PCS = 2'b00;            // Non-control
+                MemtoReg = 1'b0;        // No memory to register transfer
+                RegWrite = 1'b1;        // Enable register write
+                MemWrite = 1'b0;        // Disable memory write
+                ALUSrcA = 2'b01;        // ALU Source A: Upper immediate
+                ALUSrcB = 1'b1;         // ALU Source B: Immediate
+                ImmSrc = 3'b000;        // Immediate source: U-type
+                ALUControl = 4'b0000;   // ALU operation: ADD (replace upper bits)
+            end
+
+            default: begin // Unknown Opcode
+                // Control signals remain at default values set initially
+                // No action needed as defaults are already set
+            end
+        endcase
+
+        // ----------------------------
+        // Multi-Cycle Operation Logic
+        // ----------------------------
+        // Only specific R-type instructions initiate multi-cycle operations
+        if (Opcode == 7'h33 && (Funct3 == 3'h2 || Funct3 == 3'h3) && Funct7 == 7'h01) begin
+                    MCycleStart = 1'b1;
+                    MCycleOp = 2'b01;       // Example: Unsigned Multiply
+                    MCycleSelect = 1'b1;    // Select MCycle result
+                end
+                else if (Opcode == 7'h33 && (Funct3 == 3'h5 || Funct3 == 3'h7) && Funct7 == 7'h01) begin
+                    MCycleStart = 1'b1;
+                    MCycleOp = 2'b11;       // Example: Unsigned Division
+                    MCycleSelect = 1'b1;    // Select MCycle result
+                end
+                else if (Opcode == 7'h33 && (Funct3 == 3'h4 || Funct3 == 3'h6) && Funct7 == 7'h01) begin
+                    MCycleStart = 1'b1;
+                    MCycleOp = 2'b10;       // Example: Signed Division
+                    MCycleSelect = 1'b1;    // Select MCycle result
+                end
+                else begin
+                    MCycleStart = 1'b0;
+                    MCycleOp = 2'b00;
+                    MCycleSelect = 1'b0;
+                end
+    end
+
+endmodule
+"""
+here is the program counter
+"""
+module PC_Logic( // This is a combinational module, unlike ARM. See the note below.
+	input [1:0] PCS,	// 00 for non-control, 01 for conditional branch, 10 for jal, 11 for jalr
+	input [2:0] Funct3,	// condition specified in the instruction (eq / ne / lt / ge / ltu / geu)
+	input [2:0] ALUFlags, 	// {eq, lt, ltu}
+	output reg [1:0] PCSrc	// will need to be expanded to 2 bits to support jalr
+    );
+    
+    /* 
+    	Important Note : ALUFlags are not *stored* in flag registers in RISC-V, unlike ARM and most other processors.
+    	In RISC-V, the flags are produced and consumed in the same branch instruction. 
+    	The effect of CMP R1, R2 and BEQ LABEL in ARM is beq x1, x2, LABEL in RISC-V.
+    */
+    
+    
+	// todo: conditional logic goes here
+	always @(*)
+	begin
+	   PCSrc[1] = (PCS == 2'b11);
+	   case (PCS)
+	       2'b00: PCSrc[0] = 0;
+	       2'b01:
+	       begin
+	           case (Funct3)
+	               3'b000: PCSrc[0] = ALUFlags[2];
+	               3'b001: PCSrc[0] = ~ALUFlags[2];
+	               3'b100: PCSrc[0] = ALUFlags[1];
+	               3'b101: PCSrc[0] = ~ALUFlags[1];
+	               3'b110: PCSrc[0] = ALUFlags[0];
+	               3'b111: PCSrc[0] = ~ALUFlags[0];
+		       default: PCSrc[0] = 0;
+               endcase
+	       end
+	       2'b10: PCSrc[0] = 1;
+	       2'b11: PCSrc[0] = 1;
+	       default: PCSrc[0] = 0;
+	   endcase
+	end
+endmodule
+module ProgramCounter(
+    input CLK,
+    input RESET,
+    input WE_PC,    // write enable
+    input [31:0] PC_IN,
+    output reg [31:0] PC = 0  
+    );
+    
+    always@( posedge CLK )
+    begin
+        if(RESET)
+            PC <= 0 ;
+        else if(WE_PC)
+            PC <= PC_IN ;        
+    end
+    
+endmodule
+"""
+here is the ALU
+"""
+module ALU(
+    input [31:0] Src_A,
+    input [31:0] Src_B,
+    input [3:0] ALUControl, // 0000 for add, 0001 for sub, 1110 for and, 1100 for or, 0010 for sll, 1010 for srl, 1011 for sra.
+    output reg [31:0] ALUResult,
+    output [2:0] ALUFlags //{eq, lt, ltu}
+    );
+    
+    // Shifter signals
+	wire [1:0] Sh ;
+	wire [4:0] Shamt5 ;
+	wire [31:0] ShIn ;
+	wire [31:0] ShOut ;
+	
+    // Other signals
+    wire [32:0] S_wider ;
+    reg [32:0] Src_A_comp ;
+    reg [32:0] Src_B_comp ;
+    reg [32:0] C_0 ;
+    wire N, Z, C, V; 	// optional intermediate values to derive eq, lt, ltu
+			// Hint: We need to care about V only for subtraction
+	
+    assign S_wider = Src_A_comp + Src_B_comp + C_0 ;
+    
+    always@(Src_A, Src_B, ALUControl, S_wider, ShOut) begin
+        // default values; help avoid latches
+        C_0 = 0 ; 
+        Src_A_comp = {1'b0, Src_A} ;
+        Src_B_comp = {1'b0, Src_B} ;
+        ALUResult = Src_B ;
+    
+        case(ALUControl)
+            4'b0000:	//add
+            begin
+                ALUResult = S_wider[31:0] ;
+            end
+            
+            4'b0001:	//sub
+            begin
+                C_0[0] = 1 ;  
+		    Src_B_comp = {1'b1, ~ Src_B} ;
+                ALUResult = S_wider[31:0] ;
+            end
+            
+            4'b1110: ALUResult = Src_A & Src_B ;	// and
+            4'b1100: ALUResult = Src_A | Src_B ; 	// or
+            
+            // include cases for shifts				// shifts
+            4'b0010:
+            begin
+                ALUResult = ShOut;
+            end
+            
+             4'b1010:
+             begin
+                ALUResult = ShOut;
+             end
+             
+             4'b1011:
+             begin
+                ALUResult = ShOut;
+             end
+             
+             4'b1000: ALUResult = Src_A ^ Src_B;    // xor
+             
+             4'b0100: ALUResult = (Src_A < Src_B) ? 1 : 0;  // slt
+             4'b0110: ALUResult = (Src_A < Src_B) ? 1 : 0;  // sltu 
+            										
+            default: ALUResult = 32'bx;
+        endcase
+    end
+    
+    assign N = ALUResult[31];
+    assign Z = (ALUResult == 0);
+    assign C = S_wider[32];
+    assign V = (ALUControl[3:1] == 3'b000) ? 
+            ((ALUControl[0] ^ Src_A[31] ^ Src_B[31]) & (ALUResult[31] ^ Src_A[31])) : 1'b0;
+
+    // ALUFlags calculation
+    wire eq, lt, ltu;
+
+    assign eq = Z;
+    assign lt = N ^ V;  // For signed comparison, LT is true if N != V
+    assign ltu = ~C;    // For unsigned comparison, LTU is true if there's no carry
+    
+    assign ALUFlags = {eq, lt, ltu};
+    
+    // Sh value
+    // SLL = 2'b00
+    // SRL = 2'b10
+    // SRA = 2'b11
+    
+    // todo: make shifter connections here
+    // Sh signals can be derived directly from the appropriate ALUControl bits
+    assign Sh = (ALUControl == 4'b0010) ? 2'b00 : 
+                (ALUControl == 4'b1010) ? 2'b10 : 
+                (ALUControl == 4'b1011) ? 2'b11 : 2'b00;
+    
+//    assign Sh = (ALUControl == 4'b0010) ? 2'b00 : 
+//                                (ALUControl == 4'b1010) ? 2'b10 : 
+//                                (ALUControl == 4'b1011) ? 2'b11 : 0;
+    
+    assign Shamt5 = Src_B;
+    assign ShIn = Src_A;
+    
+	// Instantiate Shifter        
+    Shifter Shifter1(
+                    Sh,
+                    Shamt5,
+                    ShIn,
+                    ShOut
+                );
+     
+endmodule
+"""
+here is the multiple cycle mul /div unit, it will use busy signal to stall the processor when calculating
+"""
+module MCycle
+
+    #(parameter width = 32) // Keep this at 4 to verify your algorithms with 4 bit numbers (easier). When using MCycle as a component in ARM, generic map it to 32.
+    (
+        input CLK,
+        input RESET, // Connect this to the reset of the ARM processor.
+        input Start, // Multi-cycle Enable. The control unit should assert this when an instruction with a multi-cycle operation is detected.
+        input [1:0] MCycleOp, // Multi-cycle Operation. "00" for signed multiplication, "01" for unsigned multiplication, "10" for signed division, "11" for unsigned division. Generated by Control unit
+        input [width-1:0] Operand1, // Multiplicand / Dividend
+        input [width-1:0] Operand2, // Multiplier / Divisor
+        output reg [width-1:0] Result1, // LSW of Product / Quotient
+        output reg [width-1:0] Result2, // MSW of Product / Remainder
+        output reg Busy // Set immediately when Start is set. Cleared when the Results become ready. This bit can be used to stall the processor while multi-cycle operations are on.
+    );
+    
+// use the Busy signal to reset WE_PC to 0 in ARM.v (aka "freeze" PC). The two signals are complements of each other
+// since the IDLE_PROCESS is combinational, instantaneously asserts Busy once Start is asserted
+  
+    parameter IDLE = 1'b0 ;  // will cause a warning which is ok to ignore - [Synth 8-2507] parameter declaration becomes local in MCycle with formal parameter declaration list...
+
+    parameter COMPUTING = 1'b1 ; // this line will also cause the above warning
+    reg state = IDLE ;
+    reg n_state = IDLE ;
+   
+    reg done ;
+    reg [7:0] count = 0 ; // assuming no computation takes more than 256 cycles.
+    reg [2*width-1:0] temp_sum = 0 ;
+    reg [2*width-1:0] shifted_op1 = 0 ;
+    reg [2*width-1:0] shifted_op2 = 0 ;
+         
+    parameter half_width = width/2; // also will cause the above warning
+   
+    always@( state, done, Start, RESET ) begin : IDLE_PROCESS  
+		// Note : This block uses non-blocking assignments to get around an unpredictable Verilog simulation behaviour.
+        // default outputs
+        Busy <= 1'b0 ;
+        n_state <= IDLE ;
+        
+        // reset
+        if(~RESET)
+            case(state)
+                IDLE: begin
+                    if(Start) begin // note: a mealy machine, since output depends on current state (IDLE) & input (Start)
+                        n_state <= COMPUTING ;
+                        Busy <= 1'b1 ;
+                    end
+                end
+                COMPUTING: begin
+                    if(~done) begin
+                        n_state <= COMPUTING ;
+                        Busy <= 1'b1 ;
+                    end
+                end        
+            endcase    
+    end
+
+
+    always@( posedge CLK ) begin : STATE_UPDATE_PROCESS // state updating
+        state <= n_state ;    
+    end
+    
+    reg op1_sign = 0;
+    reg op2_sign = 0;
+
+    wire [half_width-1:0] op1_msb;
+    assign op1_msb = Operand1[width-1:half_width];
+    wire [half_width-1:0] op1_lsb;
+    assign op1_lsb = Operand1[half_width-1:0];
+    
+    wire [half_width-1:0] op2_msb;
+    assign op2_msb = Operand2[width-1:half_width];
+    wire [half_width-1:0] op2_lsb;
+    assign op2_lsb = Operand2[half_width-1:0];
+    
+    reg [width-1:0] shifted_op1_msb = 0;
+    reg [width-1:0] shifted_op1_lsb = 0;
+    reg [width-1:0] shifted_op2_msb = 0;
+    reg [width-1:0] shifted_op2_lsb = 0;
+    reg [width-1:0] temp_sum_msb = 0;
+    reg [width-1:0] temp_sum_lsb = 0;
+    
+    wire [half_width-1:0] sum_op1;
+    assign sum_op1 = op1_msb + op1_lsb;
+    wire [half_width-1:0] sum_op2;
+    assign sum_op2 = op2_msb + op2_lsb; 
+    
+    reg [width-1:0] temp_sum_sum_op = 0;
+    reg [width-1:0] shifted_sum_op1 = 0;
+    reg [width-1:0] shifted_sum_op2 = 0;
+    
+    reg [width-1:0] Z1 = 0;
+    reg [2*width-1:0] result = 0;
+
+    
+    always@( posedge CLK ) begin : COMPUTING_PROCESS // process which does the actual computation
+        // n_state == COMPUTING and state == IDLE implies we are just transitioning into COMPUTING
+        if( RESET | (n_state == COMPUTING & state == IDLE) ) begin // 2nd condition is true during the very 1st clock cycle of the multiplication
+            count = 0 ;
+            temp_sum = 0 ;
+            temp_sum_msb = 0;
+            temp_sum_lsb = 0;
+            temp_sum_sum_op = 0;
+
+            if (~MCycleOp[0]) begin // Signed operation, simple trick to convert
+                // Store signs and convert to positive
+                op1_sign = Operand1[width-1];
+                op2_sign = Operand2[width-1];
+                
+                if (op1_sign) begin
+                    shifted_op1 = {{width{1'b0}}, (~Operand1 + 1'b1)};
+                    shifted_op1_msb = {{half_width{1'b0}}, (~op1_msb)};
+                    shifted_op1_lsb = {{half_width{1'b0}}, (~op1_lsb) + 1'b1};
+                    shifted_sum_op1 = {{half_width{1'b0}}, (~sum_op1 + 1'b1)};
+                end
+                else begin
+                    shifted_op1 = {{width{1'b0}}, Operand1};
+                    shifted_op1_msb = {{half_width{1'b0}}, (op1_msb)};
+                    shifted_op1_lsb = {{half_width{1'b0}}, (op1_lsb)};
+                    shifted_sum_op1 = {{half_width{1'b0}}, (sum_op1)};
+                end
+                
+                if (op2_sign) begin
+                    shifted_op2 = {{width{1'b0}}, (~Operand2 + 1'b1)};
+                    shifted_op2_msb = {{half_width{1'b0}}, (op2_msb + 1'b1)};
+                    shifted_op2_lsb = {{half_width{1'b0}}, (op2_lsb) + 1'b1};
+                    shifted_sum_op2 = {{half_width{1'b0}}, (~sum_op2 + 1'b1)};
+                end
+                else begin
+                    shifted_op2 = {{width{1'b0}}, Operand2};
+                    shifted_op2_msb = {{half_width{1'b0}}, (op2_msb)};
+                    shifted_op2_lsb = {{half_width{1'b0}}, (op2_lsb)};
+                    shifted_sum_op2 = {{half_width{1'b0}}, (sum_op2)};
+                end
+
+            end else begin // Unsigned operation
+                op1_sign = 1'b0;
+                op2_sign = 1'b0;
+                shifted_op1 = {{width{1'b0}}, Operand1};
+                shifted_op2 = {{width{1'b0}}, Operand2};
+                
+                shifted_op1_msb = {{half_width{1'b0}}, (Operand1[width-1:half_width])};
+                shifted_op1_lsb = {{half_width{1'b0}}, (Operand1[half_width-1:0])};
+                shifted_sum_op1 = {{half_width{1'b0}}, (sum_op1)};
+                
+                shifted_op2_msb = {{half_width{1'b0}}, (Operand2[width-1:half_width])};
+                shifted_op2_lsb = {{half_width{1'b0}}, (Operand2[half_width-1:0])};
+                shifted_sum_op2 = {{half_width{1'b0}}, (sum_op2)};
+            end
+
+        end ;
+
+        done <= 1'b0 ;   
+        
+        if( ~MCycleOp[1] ) begin // Multiply
+            // if( ~MCycleOp[0] ), takes 2*'width' cycles to execute, returns signed(Operand1)*signed(Operand2)
+            // if( MCycleOp[0] ), takes 'width' cycles to execute, returns unsigned(Operand1)*unsigned(Operand2)        
+//            if( shifted_op2[0] ) // add only if b0 = 1
+//                temp_sum = temp_sum + shifted_op1 ; // partial product for multiplication
+            
+//            shifted_op2 = {1'b0, shifted_op2[2*width-1 : 1]} ;
+//            shifted_op1 = {shifted_op1[2*width-2 : 0], 1'b0} ;
+            
+            if (shifted_op2_msb[0])
+                temp_sum_msb = temp_sum_msb + shifted_op1_msb;
+                
+            if (shifted_op2_lsb[0])
+                temp_sum_lsb = temp_sum_lsb + shifted_op1_lsb;
+            
+            if (shifted_sum_op2[0])
+                temp_sum_sum_op = temp_sum_sum_op + shifted_sum_op1;
+            
+            shifted_op2_msb = {1'b0, shifted_op2_msb[width-1 : 1]};
+            shifted_op2_lsb = {1'b0, shifted_op2_lsb[width-1 : 1]};
+            shifted_sum_op2 = {1'b0, shifted_sum_op2[width-1 : 1]};
+            shifted_op1_msb = {shifted_op1_msb[width-2 : 0], 1'b0};
+            shifted_op1_lsb = {shifted_op1_lsb[width-2 : 0], 1'b0};
+            shifted_sum_op1 = {shifted_sum_op1[width-2 : 0], 1'b0};     
+                
+//        if (count == 2*width-1) begin
+//            done <= 1'b1;
+//            // Negate result if signs are different (only for signed multiplication)
+//            if (~MCycleOp[0] && (op1_sign ^ op2_sign))
+//                temp_sum = ~temp_sum + 1'b1; // 2's complement negation
+//        end
+        
+        if (count == half_width) begin
+            done <= 1'b1;
+            
+            Z1 = temp_sum_sum_op - temp_sum_msb - temp_sum_lsb;
+            temp_sum = (temp_sum_msb << width) + (Z1 << half_width) + temp_sum_lsb;
+            
+            if (~MCycleOp[0] && (op1_sign ^ op2_sign))
+                temp_sum = ~temp_sum + 1'b1; // 2's complement negation
+        end
+               
+            count = count + 1;    
+        end    
+        else begin //  Divide
+            if (RESET | (n_state == COMPUTING & state == IDLE)) begin
+                // Initialize for division
+                shifted_op2 = {1'b0, shifted_op2[width - 1: 0], {(width- 1){1'b0}}};
+            end
+            
+
+            if(shifted_op1 >= shifted_op2) begin
+                shifted_op1 = shifted_op1 - shifted_op2;
+                temp_sum = {temp_sum[2*width-2:0], 1'b1};
+            end else begin
+                temp_sum = {temp_sum[2*width-2:0], 1'b0};
+            end 
+
+            shifted_op2 = {1'b0, shifted_op2[2*width-1:1]}; // Shift divisor right
+
+            if(count == width - 1) begin
+                done <= 1'b1;
+                if (~MCycleOp[0]) begin // Only for signed division
+                    // Adjust quotient
+                    if (op1_sign ^ op2_sign)
+                        temp_sum[width-1:0] = ~temp_sum[width-1:0] + 1'b1;
+                    
+                    // Adjust remainder
+                    if (op1_sign)
+                        shifted_op1[width-1:0] = ~shifted_op1[width-1:0] + 1'b1;
+                    
+                end
+            end
+
+            count = count + 1;
+               
+        end
+
+        if( ~MCycleOp[1] ) begin 
+            Result2 <= temp_sum[2*width-1 : width];
+            Result1 <= temp_sum[width-1 : 0];
+        end
+        else begin
+            Result2 <= shifted_op1[width-1:0]; // Remainder
+            Result1 <= temp_sum[width-1 : 0];  // Quotient
+        end
+    end
+   
+endmodule
+"""
+there's no memory module inside rv.v, but it's connected to outside via port.
+However, the data forwarding and  hazard unit hasn't been implemented right now, as well as flush and stall. I want to use asm without manaully insert NOP so I want you to read through the verilog code and implement the data forwarding and hazard unit, for branch prediction, you can use static branch for simplicity.

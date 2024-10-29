@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // EX/MEM Pipeline Register with Enable and MemWrite
-module EX_MEM(
+module EX_MEM_Complete(
     input CLK,
     input RESET,
     input RegWrite_EX_in,

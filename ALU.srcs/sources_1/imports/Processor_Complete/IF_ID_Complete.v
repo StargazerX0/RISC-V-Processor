@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // IF/ID Pipeline Register with Enable and Flush
-module IF_ID(
+module IF_ID_Complete(
     input CLK,
     input RESET,
     input enable,
