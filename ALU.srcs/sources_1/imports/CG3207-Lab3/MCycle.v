@@ -113,10 +113,10 @@ module MCycle
     reg [width-1:0] temp_sum_msb = 0;
     reg [width-1:0] temp_sum_lsb = 0;
     
-    wire [half_width-1:0] sum_op1;
+    wire [width-1:0] sum_op1;
     assign sum_op1 = op1_msb + op1_lsb;
-    wire [half_width-1:0] sum_op2;
-    assign sum_op2 = op2_msb + op2_lsb; 
+    wire [width-1:0] sum_op2;
+    assign sum_op2 = op2_msb + op2_lsb;
     
     reg [width-1:0] temp_sum_sum_op = 0;
     reg [width-1:0] shifted_sum_op1 = 0;
@@ -144,28 +144,25 @@ module MCycle
                     shifted_op1 = {{width{1'b0}}, (~Operand1 + 1'b1)};
                     shifted_op1_msb = {{half_width{1'b0}}, (~op1_msb)};
                     shifted_op1_lsb = {{half_width{1'b0}}, (~op1_lsb) + 1'b1};
-                    shifted_sum_op1 = {{half_width{1'b0}}, (~sum_op1 + 1'b1)};
                 end
                 else begin
                     shifted_op1 = {{width{1'b0}}, Operand1};
                     shifted_op1_msb = {{half_width{1'b0}}, (op1_msb)};
                     shifted_op1_lsb = {{half_width{1'b0}}, (op1_lsb)};
-                    shifted_sum_op1 = {{half_width{1'b0}}, (sum_op1)};
                 end
                 
                 if (op2_sign) begin
                     shifted_op2 = {{width{1'b0}}, (~Operand2 + 1'b1)};
-                    shifted_op2_msb = {{half_width{1'b0}}, (op2_msb + 1'b1)};
-                    shifted_op2_lsb = {{half_width{1'b0}}, (op2_lsb) + 1'b1};
-                    shifted_sum_op2 = {{half_width{1'b0}}, (~sum_op2 + 1'b1)};
+                    shifted_op2_msb = {{half_width{1'b0}}, (~op2_msb)};
+                    shifted_op2_lsb = {{half_width{1'b0}}, (~op2_lsb) + 1'b1};
                 end
                 else begin
                     shifted_op2 = {{width{1'b0}}, Operand2};
                     shifted_op2_msb = {{half_width{1'b0}}, (op2_msb)};
                     shifted_op2_lsb = {{half_width{1'b0}}, (op2_lsb)};
-                    shifted_sum_op2 = {{half_width{1'b0}}, (sum_op2)};
                 end
-
+                shifted_sum_op1 = shifted_op1_msb + shifted_op1_lsb;
+                shifted_sum_op2 =  shifted_op2_msb +  shifted_op2_lsb; 
             end else begin // Unsigned operation
                 op1_sign = 1'b0;
                 op2_sign = 1'b0;
@@ -174,11 +171,11 @@ module MCycle
                 
                 shifted_op1_msb = {{half_width{1'b0}}, (Operand1[width-1:half_width])};
                 shifted_op1_lsb = {{half_width{1'b0}}, (Operand1[half_width-1:0])};
-                shifted_sum_op1 = {{half_width{1'b0}}, (sum_op1)};
+                shifted_sum_op1 = sum_op1;
                 
                 shifted_op2_msb = {{half_width{1'b0}}, (Operand2[width-1:half_width])};
                 shifted_op2_lsb = {{half_width{1'b0}}, (Operand2[half_width-1:0])};
-                shifted_sum_op2 = {{half_width{1'b0}}, (sum_op2)};
+                shifted_sum_op2 = sum_op2;
             end
 
         end ;
