@@ -188,6 +188,11 @@ module Decoder(
                     MCycleOp = 2'b01;       // Example: Unsigned Multiply
                     MCycleSelect = 1'b1;    // Select MCycle result
                 end
+                else if (Opcode == 7'h33 && (Funct3 == 3'h0 || Funct3 == 3'h1) && Funct7 == 7'h01) begin
+                    MCycleStart = 1'b1;
+                    MCycleOp = 2'b00;       // Example: Signed Multiply
+                    MCycleSelect = 1'b1;    // Select MCycle result
+                end
                 else if (Opcode == 7'h33 && (Funct3 == 3'h5 || Funct3 == 3'h7) && Funct7 == 7'h01) begin
                     MCycleStart = 1'b1;
                     MCycleOp = 2'b11;       // Example: Unsigned Division
