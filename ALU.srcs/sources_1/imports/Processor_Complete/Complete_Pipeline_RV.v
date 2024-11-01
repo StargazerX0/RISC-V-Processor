@@ -128,7 +128,7 @@ module Complete_Pipelined_RV(
         .PCSrc(PCSrc_EX)
     );
     
-    // PC_IN should use ALUResult_EX instead of FinalALUResult
+    // PC_IN should use ALUResult_EX instead of FinalALUResult ?? why - 8
     wire [31:0] PC_IN;
     assign PC_IN = (PCSrc_EX == 2'b00) ? PC_IF + 4 :
                    (PCSrc_EX == 2'b01) ? PC_IF + ExtImm_EX - 8 :
@@ -198,7 +198,7 @@ module Complete_Pipelined_RV(
         .ExtImm(ExtImm_ID)
     );
     
-    // Instantiate Decoder
+    // Instantiate Decoder, ?? Two ALU scr
     Decoder Decoder1(
         .Opcode(Opcode_ID),
         .Funct3(Funct3_ID),
@@ -290,6 +290,9 @@ module Complete_Pipelined_RV(
         .ForwardB(ForwardB)
     );
 
+    wire MemRead_EX;
+    assign MemRead_EX = MemtoReg_EX;
+
     // Instantiate Hazard Detection Unit
     Hazard_Detection_Unit Hazard_Detection_Unit1(
         .ID_RS1(rs1_ID),
@@ -311,12 +314,12 @@ module Complete_Pipelined_RV(
 
     // Forwarded RD1
     assign Forwarded_RD1 = (ForwardA == 2'b10) ? ALUResult_MEM :
-                           (ForwardA == 2'b01) ? FinalALUResult :
+                           (ForwardA == 2'b01) ? WD_WB :
                            RD1_EX;
 
     // Forwarded RD2
     assign Forwarded_RD2 = (ForwardB == 2'b10) ? ALUResult_MEM :
-                           (ForwardB == 2'b01) ? FinalALUResult :
+                           (ForwardB == 2'b01) ? WD_WB :
                            RD2_EX;
 
     // ALU Source A Selection with Forwarding and ALUSrcA_EX
