@@ -309,7 +309,7 @@ module Complete_Pipelined_RV(
         .EX_MemRead(MemRead_EX),
         .EX_MemWrite(MemWrite_EX),
         .EX_RD(rd_EX),
-        .PCSrc_EX(PCS_EX),
+        .PCSrc_EX(PCSrc_EX),
         .ID_MemRead(MemRead_ID),
         .Stall(Stall_Signal),
         .Flush(Flush_Signal)
