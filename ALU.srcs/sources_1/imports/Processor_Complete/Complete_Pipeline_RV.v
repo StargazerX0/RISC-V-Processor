@@ -300,8 +300,10 @@ module Complete_Pipelined_RV(
     wire MemRead_EX;         // Declared MemRead_EX
     assign MemRead_EX = MemtoReg_EX; // MemRead_EX is true if the EX stage is performing a load
 
-    // Instantiate Hazard Detection Unit
+    // Instantiate Hazard Detection Unit with state
     Hazard_Detection_Unit Hazard_Detection_Unit1(
+        .CLK(CLK),
+        .RESET(RESET),
         .ID_RS1(rs1_ID),
         .ID_RS2(rs2_ID),
         .EX_MemRead(MemRead_EX),
@@ -312,6 +314,7 @@ module Complete_Pipelined_RV(
         .Stall(Stall_Signal),
         .Flush(Flush_Signal)
     );
+
 
     // ---------------------------------
     // EX Stage
