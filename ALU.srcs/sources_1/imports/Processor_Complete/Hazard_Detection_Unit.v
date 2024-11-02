@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-// Hazard Detection Unit Module with Enhanced FSM for Multiple Stall Cycles
+// Hazard Detection Unit Module with FSM and CLEAR_STALL State
 module Hazard_Detection_Unit(
     input CLK,
     input RESET,
@@ -15,75 +15,85 @@ module Hazard_Detection_Unit(
     output reg Flush           // Flush signal
     );
 
-    // Define states using parameters (Standard Verilog)
-    parameter IDLE            = 2'b00;
-    parameter STALL_LOAD      = 2'b01; // For Load-Use Hazard (1 stall cycle)
-    parameter STALL_STORE_1   = 2'b10; // First stall cycle for Store-Load Hazard
-    parameter STALL_STORE_2   = 2'b11; // Second stall cycle for Store-Load Hazard
+// Define states using parameters (Standard Verilog)
+parameter IDLE          = 3'b000;
+parameter STALL_LOAD    = 3'b001; // For Load-Use Hazard (1 stall cycle)
+parameter STALL_STORE_1 = 3'b010; // First stall cycle for Store-Load Hazard
+parameter STALL_STORE_2 = 3'b011; // Second stall cycle for Store-Load Hazard
+parameter CLEAR_STALL   = 3'b100; // Clear Stall
 
-    reg [1:0] current_state, next_state;
+reg [2:0] current_state, next_state;
 
-    // State Transition on Clock Edge
-    always @(posedge CLK or posedge RESET) begin
-        if (RESET)
-            current_state <= IDLE;
-        else
-            current_state <= next_state;
-    end
+// State Transition on Clock Edge
+always @(posedge CLK or posedge RESET) begin
+    if (RESET)
+        current_state <= IDLE;
+    else
+        current_state <= next_state;
+end
 
-    // Next State Logic and Output Generation
-    always @(*) begin
-        // Default assignments
-        Stall = 1'b0;
-        Flush = 1'b0;
-        next_state = current_state;
+// Next State Logic and Output Generation
+always @(*) begin
+    // Default assignments
+    Stall = 1'b0;
+    Flush = 1'b0;
+    next_state = current_state;
 
-        case (current_state)
-            IDLE: begin
-                // Control Hazard Detection
-                if (PCSrc_EX != 2'b00) begin
-                    Flush = 1'b1;
-                    // Typically, Flush requires one cycle; no state change needed
-                end
-
-                // Load-Use Hazard Detection
-                if (EX_MemRead && ((EX_RD == ID_RS1) || (EX_RD == ID_RS2))) begin
-                    Stall = 1'b1;
-                    next_state = STALL_LOAD;
-                end
-                // Store-Load Hazard Detection
-                else if (EX_MemWrite && ID_MemRead) begin
-                    Stall = 1'b1;
-                    next_state = STALL_STORE_1;
-                end
+    case (current_state)
+        IDLE: begin
+            // Control Hazard Detection
+            if (PCSrc_EX != 2'b00) begin
+                Flush = 1'b1;
+                // Stay in IDLE, as Flush handles the pipeline clearing
             end
 
-            STALL_LOAD: begin
-                // Assert Stall for one cycle
+            // Load-Use Hazard Detection
+            if (EX_MemRead && ((EX_RD == ID_RS1) || (EX_RD == ID_RS2))) begin
                 Stall = 1'b1;
-                // After one stall cycle, return to IDLE
-                next_state = IDLE;
+                next_state = STALL_LOAD;
             end
-
-            STALL_STORE_1: begin
-                // Assert Stall for first cycle
+            // Store-Load Hazard Detection
+            else if (EX_MemWrite && ID_MemRead) begin
                 Stall = 1'b1;
-                // Transition to second stall cycle
-                next_state = STALL_STORE_2;
+                next_state = STALL_STORE_1;
             end
+        end
 
-            STALL_STORE_2: begin
-                // Assert Stall for second cycle
-                Stall = 1'b1;
-                // After two stall cycles, return to IDLE
-                next_state = IDLE;
-            end
+        STALL_LOAD: begin
+            // Assert Stall for one cycle
+            Stall = 1'b1;
+            // Transition to CLEAR_STALL after one stall cycle
+            next_state = CLEAR_STALL;
+        end
 
-            default: begin
-                Stall = 1'b0;
-                Flush = 1'b0;
-                next_state = IDLE;
-            end
-        endcase
-    end
+        STALL_STORE_1: begin
+            // Assert Stall for first cycle of Store-Load Hazard
+            Stall = 1'b1;
+            // Transition to STALL_STORE_2 for second stall cycle
+            next_state = STALL_STORE_2;
+        end
+
+        STALL_STORE_2: begin
+            // Assert Stall for second cycle of Store-Load Hazard
+            Stall = 1'b1;
+            // Transition to CLEAR_STALL after two stall cycles
+            next_state = CLEAR_STALL;
+        end
+
+        CLEAR_STALL: begin
+            // Deassert Stall
+            Stall = 1'b0;
+            Flush = 1'b0;
+            // Transition back to IDLE
+            next_state = IDLE;
+        end
+
+        default: begin
+            Stall = 1'b0;
+            Flush = 1'b0;
+            next_state = IDLE;
+        end
+    endcase
+end
+
 endmodule
