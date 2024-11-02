@@ -48,72 +48,73 @@ module ID_EX_Complete(
     output reg [31:0] PC_EX,
     output reg MemWrite_EX        // Add MemWrite_EX
 );
-    always @(posedge CLK or posedge RESET) begin
-        if (RESET) begin
-            // Initialize all outputs to 0
-            RegWrite_EX <= 0;
-            MemtoReg_EX <= 0;
-            ALUSrcA_EX <= 0;
-            ALUSrcB_EX <= 0;
-            ALUControl_EX <= 0;
-            MCycleStart_EX <= 0;
-            MCycleOp_EX <= 2'b00;
-            MCycleSelect_EX <= 0;
-            ImmSrc_EX <= 0;
-            PCS_EX <= 0;
-            Funct3_EX <= 0;
-            RD1_EX <= 0;
-            RD2_EX <= 0;
-            ExtImm_EX <= 0;
-            rs1_EX <= 0;
-            rs2_EX <= 0;
-            rd_EX <= 0;
-            PC_EX <= 0;
-            MemWrite_EX <= 0;
-        end else if (flush) begin
-            // Insert NOP by clearing control signals and data
-            RegWrite_EX <= 0;
-            MemtoReg_EX <= 0;
-            ALUSrcA_EX <= 0;
-            ALUSrcB_EX <= 0;
-            ALUControl_EX <= 4'b0000;
-            MCycleStart_EX <= 0;
-            MCycleOp_EX <= 2'b00;
-            MCycleSelect_EX <= 0;
-            ImmSrc_EX <= 0;
-            PCS_EX <= 0;
-            Funct3_EX <= 0;
-            RD1_EX <= 0;
-            RD2_EX <= 0;
-            ExtImm_EX <= 0;
-            rs1_EX <= 0;
-            rs2_EX <= 0;
-            rd_EX <= 0;
-            PC_EX <= 0;
-            MemWrite_EX <= 0;
-        end else if (enable) begin
-            // Normal operation: pass through control and data signals
-            RegWrite_EX <= RegWrite_in;
-            MemtoReg_EX <= MemtoReg_in;
-            ALUSrcA_EX <= ALUSrcA_in;
-            ALUSrcB_EX <= ALUSrcB_in;
-            ALUControl_EX <= ALUControl_in;
-            MCycleStart_EX <= MCycleStart_in;
-            MCycleOp_EX <= MCycleOp_in;
-            MCycleSelect_EX <= MCycleSelect_in;
-            ImmSrc_EX <= ImmSrc_in;
-            PCS_EX <= PCS_in;
-            Funct3_EX <= Funct3_in;
-            RD1_EX <= RD1_in;
-            RD2_EX <= RD2_in;
-            ExtImm_EX <= ExtImm_in;
-            rs1_EX <= rs1_in;
-            rs2_EX <= rs2_in;
-            rd_EX <= rd_in;
-            PC_EX <= PC_in;
-            MemWrite_EX <= MemWrite_in;  // Pass through MemWrite_in
-        end
+always @(posedge CLK or posedge RESET) begin
+    if (RESET) begin
+        // Initialize all outputs to 0
+        RegWrite_EX <= 0;
+        MemtoReg_EX <= 0;
+        ALUSrcA_EX <= 0;
+        ALUSrcB_EX <= 0;
+        ALUControl_EX <= 0;
+        MCycleStart_EX <= 0;
+        MCycleOp_EX <= 2'b00;
+        MCycleSelect_EX <= 0;
+        ImmSrc_EX <= 0;
+        PCS_EX <= 0;
+        Funct3_EX <= 0;
+        RD1_EX <= 0;
+        RD2_EX <= 0;
+        ExtImm_EX <= 0;
+        rs1_EX <= 0;
+        rs2_EX <= 0;
+        rd_EX <= 0;
+        PC_EX <= 0;
+        MemWrite_EX <= 0;
+    end else if (flush) begin
+        // Insert NOP by clearing control signals and data
+        RegWrite_EX <= 0;
+        MemtoReg_EX <= 0;
+        ALUSrcA_EX <= 0;
+        ALUSrcB_EX <= 0;
+        ALUControl_EX <= 4'b0000;
+        MCycleStart_EX <= 0;
+        MCycleOp_EX <= 2'b00;
+        MCycleSelect_EX <= 0;
+        ImmSrc_EX <= 0;
+        PCS_EX <= 0;
+        Funct3_EX <= 0;
+        RD1_EX <= 0;
+        RD2_EX <= 0;
+        ExtImm_EX <= 0;
+        rs1_EX <= 0;
+        rs2_EX <= 0;
+        rd_EX <= 0;
+        PC_EX <= 0;
+        MemWrite_EX <= 0;
+    end else if (enable) begin
+        // Normal operation: pass through control and data signals
+        RegWrite_EX <= RegWrite_in;
+        MemtoReg_EX <= MemtoReg_in;
+        ALUSrcA_EX <= ALUSrcA_in;
+        ALUSrcB_EX <= ALUSrcB_in;
+        ALUControl_EX <= ALUControl_in;
+        MCycleStart_EX <= MCycleStart_in;
+        MCycleOp_EX <= MCycleOp_in;
+        MCycleSelect_EX <= MCycleSelect_in;
+        ImmSrc_EX <= ImmSrc_in;
+        PCS_EX <= PCS_in;
+        Funct3_EX <= Funct3_in;
+        RD1_EX <= RD1_in;
+        RD2_EX <= RD2_in;
+        ExtImm_EX <= ExtImm_in;
+        rs1_EX <= rs1_in;
+        rs2_EX <= rs2_in;
+        rd_EX <= RegWrite_in ? rd_in : 5'b00000; // **Modified Line**
+        PC_EX <= PC_in;
+        MemWrite_EX <= MemWrite_in;
     end
+end
+
 endmodule
 
 

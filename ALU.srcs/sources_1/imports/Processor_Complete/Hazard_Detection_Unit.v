@@ -17,19 +17,18 @@ module Hazard_Detection_Unit(
         // Default: No stall or flush
         Stall = 1'b0;
         Flush = 1'b0;
-
+        
         // Load-Use Hazard: If the EX stage is loading a register that the ID stage needs
         if (EX_MemRead && ((EX_RD == ID_RS1) || (EX_RD == ID_RS2))) begin
             Stall = 1'b1; // Stall the pipeline
+            Flush = 1'b1; // Insert bubble
         end
 
         // Store-Load Hazard: If the EX stage is storing and the ID stage is loading
         if (EX_MemWrite && ID_MemRead) begin
             Stall = 1'b1; // Stall the pipeline
+            Flush = 1'b1; // Insert bubble
         end
-        // if (EX_MemRead && ((EX_RD == ID_RS1) || (EX_RD == ID_RS2))) begin
-        //     Stall = 1'b1; // Stall the pipeline
-        // end
 
         // Control Hazard: If a branch is taken, flush the IF/ID pipeline register
         if (PCSrc_EX != 2'b00) begin

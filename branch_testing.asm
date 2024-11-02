@@ -68,11 +68,13 @@ main:
 
     # Structural Hazard Test
 
-    sw s2, 0(s5)              # Store word from s2 to memory at address (s5 + 0)
+    #sw s2, 0(s5)              # Store word from s2 to memory at address (s5 + 0)
+    #nop
+    #nop
+    #nop
+    #lw s3, 0(s5)              # Load word from memory at address in s5 into s3
 
-    lw s3, 0(s5)              # Load word from memory at address in s5 into s3
-
-    sw s7, 0(s5)              # Store word from s7 to memory at address (s5 + 0)
+    #sw s7, 0(s5)              # Store word from s7 to memory at address (s5 + 0)
 
                                # Creates a structural hazard if using single memory
 
