@@ -376,6 +376,7 @@ assign LED_PC = PC[15-N_LEDs_OUT+1 : 2]; // debug showing PC
 // RV port map
 //----------------------------------------------------------------
 Complete_Pipelined_RV RV1(
+//RV RV1(
 	CLK,
 	RESET,
 	Instr,

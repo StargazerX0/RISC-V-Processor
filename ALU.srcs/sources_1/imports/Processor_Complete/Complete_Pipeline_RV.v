@@ -44,8 +44,10 @@ module Complete_Pipelined_RV(
     wire [1:0] MCycleOp_ID;
     wire MCycleSelect_ID;
     wire [2:0] ImmSrc_ID;
+    wire isLoad_ID;
+    wire isStore_ID;
     
-    // ID/EX Pipeline Register
+    // ID/EX Pipeline Register Outputs
     wire [31:0] RD1_EX;
     wire [31:0] RD2_EX;
     wire [31:0] ExtImm_EX;
@@ -64,6 +66,7 @@ module Complete_Pipelined_RV(
     wire [2:0] ImmSrc_EX;
     wire [1:0] PCS_EX;
     wire [2:0] Funct3_EX;
+    wire MemWrite_EX;               // Declared MemWrite_EX
     
     // EX Stage
     wire [31:0] ALUResult_EX;
@@ -198,11 +201,11 @@ module Complete_Pipelined_RV(
         .ExtImm(ExtImm_ID)
     );
     
-    // Instantiate Decoder, ?? Two ALU scr
+    // Instantiate Decoder with correct instruction signal
     Decoder Decoder1(
-        .Opcode(Opcode_ID),
-        .Funct3(Funct3_ID),
-        .Funct7(Funct7_ID),
+        .Opcode(Instr_ID[6:0]),
+        .Funct3(Instr_ID[14:12]),
+        .Funct7(Instr_ID[31:25]),
         .PCS(PCS_ID),
         .RegWrite(RegWrite_ID),
         .MemWrite(MemWrite_ID),
@@ -213,9 +216,14 @@ module Complete_Pipelined_RV(
         .ALUControl(ALUControl_ID),
         .MCycleStart(MCycleStart_ID),
         .MCycleOp(MCycleOp_ID),
-        .MCycleSelect(MCycleSelect_ID)
+        .MCycleSelect(MCycleSelect_ID),
+        .isLoad(isLoad_ID),
+        .isStore(isStore_ID)
     );
     
+    wire MemRead_ID = isLoad_ID;    // MemRead is true if it's a load instruction
+    wire MemWrite_ID = isStore_ID; // MemWrite is true if it's a store instruction
+
     // ---------------------------------
     // ID/EX Pipeline Register
     // ---------------------------------
@@ -237,6 +245,7 @@ module Complete_Pipelined_RV(
         .ImmSrc_in(ImmSrc_ID),
         .PCS_in(PCS_ID),
         .Funct3_in(Funct3_ID),
+        .MemWrite_in(MemWrite_ID),         // Connect MemWrite_in
         // Data signals
         .RD1_in(RD1_ID),
         .RD2_in(RD2_ID),
@@ -263,7 +272,8 @@ module Complete_Pipelined_RV(
         .rs1_EX(rs1_EX),
         .rs2_EX(rs2_EX),
         .rd_EX(rd_EX),
-        .PC_EX(PC_EX)
+        .PC_EX(PC_EX),
+        .MemWrite_EX(MemWrite_EX)           // Capture MemWrite_EX
     );
     
     // ---------------------------------
@@ -290,16 +300,19 @@ module Complete_Pipelined_RV(
         .ForwardB(ForwardB)
     );
 
+    // Assign MemRead_EX
     wire MemRead_EX;
-    assign MemRead_EX = MemtoReg_EX;
+    assign MemRead_EX = MemtoReg_EX; // MemRead_EX is true if the EX stage is performing a load
 
     // Instantiate Hazard Detection Unit
     Hazard_Detection_Unit Hazard_Detection_Unit1(
         .ID_RS1(rs1_ID),
         .ID_RS2(rs2_ID),
         .EX_MemRead(MemRead_EX),
+        .EX_MemWrite(MemWrite_EX),
         .EX_RD(rd_EX),
-        .PCSrc_EX(PCSrc_EX),
+        .PCSrc_EX(PCS_EX),
+        .ID_MemRead(MemRead_ID),
         .Stall(Stall_Signal),
         .Flush(Flush_Signal)
     );
@@ -364,7 +377,7 @@ module Complete_Pipelined_RV(
         .Result2(MCycle_Result2), // MSW of Product / Remainder
         .Busy(Busy)
     );
-    
+
     // Final ALU Result considering MCycle
     assign ALUResult_EX = ~MCycleSelect_EX ? ALUResult_EX_internal : 
                             ((Funct3_EX == 3'h0 || Funct3_EX == 3'h4 || 
@@ -372,7 +385,7 @@ module Complete_Pipelined_RV(
                              (Funct3_EX == 3'h1 || Funct3_EX == 3'h3 || 
                               Funct3_EX == 3'h6 || Funct3_EX == 3'h7) ? 
                               MCycle_Result2 : 32'bx);    
-    
+
     // ---------------------------------
     // EX/MEM Pipeline Register
     // ---------------------------------
@@ -380,10 +393,9 @@ module Complete_Pipelined_RV(
     EX_MEM_Complete EX_MEM1(
         .CLK(CLK),
         .RESET(RESET),
-        // Removed 'enable' signal
         .RegWrite_EX_in(RegWrite_EX),
         .MemtoReg_EX_in(MemtoReg_EX),
-        .MemWrite_EX_in(MemWrite_EX),
+        .MemWrite_EX_in(MemWrite_EX),       // Connect MemWrite_EX
         .ALUResult_in(ALUResult_EX),
         .RD2_EX_in(Forwarded_RD2),
         .rd_EX_in(rd_EX),

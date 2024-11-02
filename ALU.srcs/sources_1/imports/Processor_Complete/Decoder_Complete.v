@@ -45,7 +45,9 @@ module Decoder(
     output reg [3:0] ALUControl,    // ALU operation control
     output reg MCycleStart,         // Multi-cycle operation start
     output reg [1:0] MCycleOp,      // Multi-cycle operation type
-    output reg MCycleSelect         // Multi-cycle operation selection
+    output reg MCycleSelect,         // Multi-cycle operation selection
+    output reg isLoad,              // Indicates a load instruction
+    output reg isStore              // Indicates a store instruction
 ); 
 
     // Combined always block for control signal assignments and multi-cycle logic
@@ -64,6 +66,9 @@ module Decoder(
         MCycleStart = 1'b0;        // Default: No multi-cycle operation
         MCycleOp = 2'b00;          // Default: No specific multi-cycle operation
         MCycleSelect = 1'b0;       // Default: Use ALU result, not MCycle result
+        isLoad = 1'b0;             // Default: Not a load
+        isStore = 1'b0;            // Default: Not a store
+
 
         // ----------------------------
         // Opcode-Based Control Signal Assignments
@@ -105,6 +110,7 @@ module Decoder(
                 ALUSrcB = 1'b1;         // ALU Source B: Immediate
                 ImmSrc = 3'b011;        // Immediate source: I-type
                 ALUControl = 4'b0000;   // ALU operation: ADD (calculate address)
+                isLoad = 1'b1;          // Identify as a load instruction
             end
 
             7'h23: begin // Store
@@ -116,6 +122,7 @@ module Decoder(
                 ALUSrcB = 1'b1;         // ALU Source B: Immediate
                 ImmSrc = 3'b110;        // Immediate source: S-type
                 ALUControl = 4'b0000;   // ALU operation: ADD (calculate address)
+                isStore = 1'b1;         // Identify as a store instruction
             end
             
             7'h63: begin // Branch

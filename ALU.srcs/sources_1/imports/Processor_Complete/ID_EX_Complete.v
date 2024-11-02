@@ -5,7 +5,7 @@ module ID_EX_Complete(
     input CLK,
     input RESET,
     input enable,
-    input flush,                  // New flush input
+    input flush,                 // Flush input to insert NOP
     // Control signals
     input RegWrite_in,
     input MemtoReg_in,
@@ -16,8 +16,8 @@ module ID_EX_Complete(
     input [1:0] MCycleOp_in,
     input MCycleSelect_in,
     input [2:0] ImmSrc_in,
-    input [1:0] PCS_in,          // Pass PCS input
-    input [2:0] Funct3_in,       // Pass Funct3 input
+    input [1:0] PCS_in,
+    input [2:0] Funct3_in,
     // Data signals
     input [31:0] RD1_in,
     input [31:0] RD2_in,
@@ -25,7 +25,7 @@ module ID_EX_Complete(
     input [4:0] rs1_in,
     input [4:0] rs2_in,
     input [4:0] rd_in,
-    input [31:0] PC_in,          // PC input
+    input [31:0] PC_in,
     // Outputs
     output reg RegWrite_EX,
     output reg MemtoReg_EX,
@@ -46,7 +46,6 @@ module ID_EX_Complete(
     output reg [4:0] rd_EX,
     output reg [31:0] PC_EX
 );
-
     always @(posedge CLK or posedge RESET) begin
         if (RESET) begin
             RegWrite_EX <= 0;
@@ -110,3 +109,4 @@ module ID_EX_Complete(
         end
     end
 endmodule
+

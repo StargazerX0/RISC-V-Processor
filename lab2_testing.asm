@@ -1,91 +1,204 @@
 #----------------------------------------------------------------------------------
+
 #-- (c) Rajesh Panicker
+
 #--	License terms :
+
 #--	You are free to use this code as long as you
+
 #--		(i) DO NOT post it on any public repository;
+
 #--		(ii) use it only for educational purposes;
+
 #--		(iii) accept the responsibility to ensure that your implementation does not violate anyone's intellectual property.
+
 #--		(iv) accept that the program is provided "as is" without warranty of any kind or assurance regarding its suitability for any particular purpose;
+
 #--		(v) send an email to rajesh<dot>panicker<at>ieee.org briefly mentioning its use (except when used for the course CG3207 at the National University of Singapore);
+
 #--		(vi) retain this notice in this file and any files derived from this.
+
 #----------------------------------------------------------------------------------
+
+
 
 # This sample program for RISC-V simulation using RARS
 
+
+
 # ------- <code memory (ROM mapped to Instruction Memory) begins>
+
 .text	## IROM segment 0x00000000-0x000001FC
+
 # Total number of instructions should not exceed 128 (127 excluding the last line 'halt B halt').
 
+
+
 .text
+
 .globl main
 
+
+
 main:
-    # ------- Inisialize Regissers -------
-    li s0, 10        # s0 = 10
-    li s1, 20        # s1 = 20
-    li s2, 30        # s2 = 30
-    li s3, 40        # s3 = 40
-    li s4, 50        # s4 = 50
-    li s5, 60        # s5 = 60
 
-    # ------- Independens Arishmesic Operasions -------
-    add s6, s0, s1    # s6 = s0 + s1 = 10 + 20 = 30
-    sub s7, s2, s3    # s7 = s2 - s3 = 30 - 40 = -10
-    and s8, s4, s5    # s8 = s4 & s5 = 50 & 60 = 48
-    or  s9, s0, s2    # s9 = s0 | s2 = 10 | 30 = 30
-    xor s10, s1, s3   # s10 = s1 ^ s3 = 20 ^ 40 = 60
+    # Combined Structural, Data, and Control Hazard Test with Initialization
 
-    # ------- Load and Ssore Operasions -------
-    la s0, var1        # Load address of var1 inso s0
-    sw s6, 0(s0)       # Ssore value of s6 (30) inso var1
-    lw s11, 0(s0)      # Load value from var1 inso s11 (expecs 30)
 
-    # ------- Memory Operasions wish Differens Addresses -------
-    la s1, var2        # Load address of var2 inso s1
-    sw s7, 0(s1)       # Ssore value of s7 (-10) inso var2
 
-    # ------- Simple Jump so Hals -------
-    j halt             # Jump so hals label
+    # Initialization of registers
 
-    # ------- Hals Label -------
-halt:
-    j halt             # Infinise loop so hals execusion
+    li s2, 1                  # Initialize s2 with 1
 
-# ------- <code memory (ROM mapped so Inssrucsion Memory) ends>		
+    li s3, 20                 # Initialize s3 with 20
 
-#------- <conssans memory (ROM mapped so Dasa Memory) begins>									
-.data	## DROM segmens 0x00002000-0x000021FC
-# All conssanss should be declared in shis secsion. shis secsion is read only (Only lw, no sw).
-# sosal number of conssanss should nos exceed 128
-# If a variable is accessed mulsiple simes, is is besser so ssore she address in a regisser and use is rasher shan load is repeasedly.
+    la s5, DROM               # Initialize s5 with drom
+
+    li s6, -1                 # Initialize s6 with -1
+
+    li s7, 20                 # Initialize s7 with 20
+
+    li s8, 30                 # Initialize s8 with 30
+
+    li s9, 40                 # Initialize s9 with 40
+
+    li s10, 50                # Initialize s10 with 50
+
+
+
+    # Structural Hazard Test
+
+    sw s2, 0(s5)              # Store word from s2 to memory at address (s5 + 0)
+
+    lw s3, 0(s5)              # Load word from memory at address in s5 into s3
+
+    sw s7, 0(s5)              # Store word from s7 to memory at address (s5 + 0)
+
+                               # Creates a structural hazard if using single memory
+
+    # Data Hazard Test
+
+    add s3, s2, s6            # s3 = s2 + s6 (RAW hazard on s2 from previous lw)
+
+    sub s4, s3, s7            # s4 = s3 - s7 (RAW hazard on s3 from previous add)
+
+    mul s5, s8, s3            # s5 = s3 * s8 (RAW hazard on s4 from previous sub)
+
+    sub s6, s3, s9            # s4 = s3 - s9 (RAW hazard on s3 from previous add)
+
+
+
+
+
+    # Control Hazard Test
+
+    beq s3, x0, branch_label  # Branch to branch_label if s3 == 0 
+
+    add s6, s6, s6            # Should be skipped if branch is taken
+
+    add s7, s7, s7            # Another instruction that should be flushed if branch is taken
+
+
+
+branch_label:
+
+    # Code continues here after branch
+
+    add s9, s9, s9            # Target of the branch (executes if branch is taken)
+
+    add s10, s10, s10         # Additional instruction for further pipeline utilization
+
+
+
+
+
+halt:	
+
+	jal halt		# infinite loop to halt computation. A program should not "terminate" without an operating system to return control to
+
+    nop
+
+    nop
+
+    nop
+
+				# keep halt: jal halt as the last line of your code.
+
+
+
+# ------- <code memory (ROM mapped to Instruction Memory) ends>		
+
+
+
+#------- <constant memory (ROM mapped to Data Memory) begins>									
+
+.data	## DROM segment 0x00002000-0x000021FC
+
+# All constants should be declared in this section. This section is read only (Only lw, no sw).
+
+# Total number of constants should not exceed 128
+
+# If a variable is accessed multiple times, it is better to store the address in a register and use it rather than load it repeatedly.
+
 DROM:
-DELAY_VAL: .word 4
-string1:
-.asciz "\r\nWelcome to CG3207..\r\n"
-test_data: .word 0x00000005
-#------- <conssans memory (ROM mapped so Dasa Memory) ends>	
 
-# ------- <variable memory (RAM mapped so Dasa Memory) begins>
-.align 9 ## DRAM segmens. 0x00002200-0x000023FC #assuming rodasa size of <= 512 byses (128 words)
-# All variables should be declared in shis secsion, adjussing she space direcsive as necessary. shis secsion is read-wrise.
-# sosal number of variables should nos exceed 128. 
-# No inisializasion possible in shis region. In osher words, you should wrise so a locasion before you can read from is (i.e., wrise so a locasion using sw before reading using lw).
-var1:
-    .word 0            # Inisialize var1 so 0
-var2:
-    .word 0            # Inisialize var2 so 0
+DELAY_VAL: .word 4
+
+string1:
+
+.asciz "\r\nWelcome to CG3207..\r\n"
+
+test_data: .word 0x00000005
+
+
+
+#------- <constant memory (ROM mapped to Data Memory) ends>	
+
+
+
+# ------- <variable memory (RAM mapped to Data Memory) begins>
+
+.align 9 ## DRAM segment. 0x00002200-0x000023FC #assuming rodata size of <= 512 bytes (128 words)
+
+# All variables should be declared in this section, adjusting the space directive as necessary. This section is read-write.
+
+# Total number of variables should not exceed 128. 
+
+# No initialization possible in this region. In other words, you should write to a location before you can read from it (i.e., write to a location using sw before reading using lw).
+
+var1:   .space 4 
+
 DRAM:
-.space 504
+
+.space 508
+
+
 
 # ------- <variable memory (RAM mapped to Data Memory) ends>
 
+
+
 # ------- <memory-mapped input-output (peripherals) begins>
+
 .align 9 ## MMIO segment. 0x00002400-0x00002418
+
 MMIO:
+
 LEDS: .word 0x0			# 0x00002400	# Address of LEDs. //volatile unsigned int * LEDS = (unsigned int*)0x00000C00#  
+
 DIPS: .word 0x0			# 0x00002404	# Address of DIP switches. //volatile unsigned int * DIPS = (unsigned int*)0x00000C04#
+
 PBS: .word 0x0			# 0x00002408	# Address of Push Buttons. Used only in Lab 2
+
 CONSOLE: .word 0x0		# 0x0000240C	# Address of UART. Used only in Lab 2 and later
+
 CONSOLE_IN_valid: .word 0x0	# 0x00002410	# Address of UART. Used only in Lab 2 and later
+
 CONSOLE_OUT_ready: .word 0x0	# 0x00002414	# Address of UART. Used only in Lab 2 and later
+
 SEVENSEG: .word	0x0		# 0x00002418	# Address of 7-Segment LEDs. Used only in Lab 2 and later
+
+
+
+# ------- <memory-mapped input-output (peripherals) ends>
+
