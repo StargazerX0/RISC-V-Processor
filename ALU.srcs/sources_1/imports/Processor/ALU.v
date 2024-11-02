@@ -96,7 +96,14 @@ module ALU(
              
              4'b1000: ALUResult = Src_A ^ Src_B;    // xor
              
-             4'b0100: ALUResult = (Src_A < Src_B) ? 1 : 0;  // slt
+             4'b0100:   // slt
+             begin
+                if (Src_A[31] == 1 && Src_B[31] == 0) ALUResult = 1;
+                if (Src_A[31] == 0 && Src_B[31] == 1) ALUResult = 0;
+                if (Src_A[31] == 0 && Src_B[31] == 0) ALUResult = (Src_A < Src_B) ? 1 : 0;
+                if (Src_A[31] == 1 && Src_B[31] == 1) ALUResult = (~Src_A + 1 < ~Src_B + 1) ? 1 : 0;
+             end
+             
              4'b0110: ALUResult = (Src_A < Src_B) ? 1 : 0;  // sltu 
             										
             default: ALUResult = 32'bx;
