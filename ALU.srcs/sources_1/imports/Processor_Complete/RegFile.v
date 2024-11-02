@@ -52,23 +52,11 @@ module RegFile(
     assign RD2 = (rs2 == 5'b00000) ? 32'd0 : RegBank[rs2] ;   
     
     // write
-    always@(posedge CLK)
+//    always@(posedge CLK)
+    always@(negedge CLK)
     begin
         if((rd != 5'b00000) & (WE))
             RegBank[rd] <= WD ;
     end
     
 endmodule
-
-
-
-
-
-
-
-
-
-
-
-
-
