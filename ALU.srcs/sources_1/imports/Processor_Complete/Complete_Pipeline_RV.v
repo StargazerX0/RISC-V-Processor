@@ -94,7 +94,7 @@ module Complete_Pipelined_RV(
     wire [31:0] WD_WB;
     
     // Final ALU Result
-    wire [31:0] ALUResult_WB_Final;
+    // wire [31:0] ALUResult_WB_Final; // Removed if unused
     
     // Additional Wires
     wire [24:0] InstrImm_ID; // Declared InstrImm_ID
@@ -131,7 +131,7 @@ module Complete_Pipelined_RV(
         .PCSrc(PCSrc_EX)
     );
     
-    // PC_IN should use ALUResult_EX instead of FinalALUResult ?? why - 8
+    // PC_IN Logic
     wire [31:0] PC_IN;
     assign PC_IN = (PCSrc_EX == 2'b00) ? PC_IF + 4 :
                    (PCSrc_EX == 2'b01) ? PC_IF + ExtImm_EX - 8 :
@@ -202,13 +202,13 @@ module Complete_Pipelined_RV(
     );
     
     // Instantiate Decoder with correct instruction signal
-    Decoder Decoder1(
+    Decoder_Complete Decoder1(
         .Opcode(Instr_ID[6:0]),
         .Funct3(Instr_ID[14:12]),
         .Funct7(Instr_ID[31:25]),
         .PCS(PCS_ID),
         .RegWrite(RegWrite_ID),
-        .MemWrite(MemWrite_ID),
+        // .MemWrite(MemWrite_ID),
         .MemtoReg(MemtoReg_ID),
         .ALUSrcA(ALUSrcA_ID),
         .ALUSrcB(ALUSrcB_ID),
@@ -284,10 +284,6 @@ module Complete_Pipelined_RV(
     wire [1:0] ForwardA;
     wire [1:0] ForwardB;
 
-    // Hazard detection signals
-    wire Stall_Signal;
-    wire Flush_Signal;
-
     // Instantiate Forwarding Unit
     Forwarding_Unit Forwarding_Unit1(
         .EX_RS1(rs1_EX),
@@ -300,8 +296,8 @@ module Complete_Pipelined_RV(
         .ForwardB(ForwardB)
     );
 
-    // Assign MemRead_EX
-    wire MemRead_EX;
+    // Declare and Assign MemRead_EX
+    wire MemRead_EX;         // Declared MemRead_EX
     assign MemRead_EX = MemtoReg_EX; // MemRead_EX is true if the EX stage is performing a load
 
     // Instantiate Hazard Detection Unit
@@ -361,7 +357,7 @@ module Complete_Pipelined_RV(
         .ALUResult(ALUResult_EX_internal),
         .ALUFlags(ALUFlags_EX)
     );                
-    
+
     // Instantiate MCycle
     wire [31:0] MCycle_Result1;
     wire [31:0] MCycle_Result2;
@@ -393,12 +389,12 @@ module Complete_Pipelined_RV(
     EX_MEM_Complete EX_MEM1(
         .CLK(CLK),
         .RESET(RESET),
-        .RegWrite_EX_in(RegWrite_EX),
-        .MemtoReg_EX_in(MemtoReg_EX),
-        .MemWrite_EX_in(MemWrite_EX),       // Connect MemWrite_EX
-        .ALUResult_in(ALUResult_EX),
-        .RD2_EX_in(Forwarded_RD2),
-        .rd_EX_in(rd_EX),
+        .RegWrite_EX(RegWrite_EX),
+        .MemtoReg_EX(MemtoReg_EX),
+        .MemWrite_EX(MemWrite_EX),       // Connect MemWrite_EX
+        .ALUResult_EX(ALUResult_EX),
+        .RD2_EX(Forwarded_RD2),
+        .rd_EX(rd_EX),
         .RegWrite_MEM(RegWrite_MEM),
         .MemtoReg_MEM(MemtoReg_MEM),
         .MemWrite_MEM(MemWrite_MEM),
@@ -417,8 +413,8 @@ module Complete_Pipelined_RV(
     assign ReadData_MEM = ReadData_in;
     
     // Control Signals for Memory
-    assign MemRead = MemtoReg_MEM;                // Proper functionality for devices like UART CONSOLE
-    assign MemWrite_out = {4{MemWrite_MEM}};      // Support sb/sh by replicating MemWrite_MEM
+    assign MemRead = MemtoReg_MEM;                // Enabled for load instructions
+    assign MemWrite_out = {4{MemWrite_MEM}};      // Enabled for store instructions (sb/sh support)
     assign WriteData_out = RD2_MEM;               // Data to write to memory
     
     // ---------------------------------

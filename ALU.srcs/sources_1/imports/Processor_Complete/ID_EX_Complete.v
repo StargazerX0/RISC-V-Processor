@@ -18,6 +18,7 @@ module ID_EX_Complete(
     input [2:0] ImmSrc_in,
     input [1:0] PCS_in,
     input [2:0] Funct3_in,
+    input MemWrite_in,           // Add MemWrite_in
     // Data signals
     input [31:0] RD1_in,
     input [31:0] RD2_in,
@@ -44,10 +45,12 @@ module ID_EX_Complete(
     output reg [4:0] rs1_EX,
     output reg [4:0] rs2_EX,
     output reg [4:0] rd_EX,
-    output reg [31:0] PC_EX
+    output reg [31:0] PC_EX,
+    output reg MemWrite_EX        // Add MemWrite_EX
 );
     always @(posedge CLK or posedge RESET) begin
         if (RESET) begin
+            // Initialize all outputs to 0
             RegWrite_EX <= 0;
             MemtoReg_EX <= 0;
             ALUSrcA_EX <= 0;
@@ -66,6 +69,7 @@ module ID_EX_Complete(
             rs2_EX <= 0;
             rd_EX <= 0;
             PC_EX <= 0;
+            MemWrite_EX <= 0;
         end else if (flush) begin
             // Insert NOP by clearing control signals and data
             RegWrite_EX <= 0;
@@ -86,6 +90,7 @@ module ID_EX_Complete(
             rs2_EX <= 0;
             rd_EX <= 0;
             PC_EX <= 0;
+            MemWrite_EX <= 0;
         end else if (enable) begin
             // Normal operation: pass through control and data signals
             RegWrite_EX <= RegWrite_in;
@@ -106,7 +111,9 @@ module ID_EX_Complete(
             rs2_EX <= rs2_in;
             rd_EX <= rd_in;
             PC_EX <= PC_in;
+            MemWrite_EX <= MemWrite_in;  // Pass through MemWrite_in
         end
     end
 endmodule
+
 

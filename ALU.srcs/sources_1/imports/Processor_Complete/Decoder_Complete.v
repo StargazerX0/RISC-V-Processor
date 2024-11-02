@@ -31,13 +31,13 @@
 ----------------------------------------------------------------------------------
 */
 
-module Decoder(
+module Decoder_Complete(
     input [6:0] Opcode,
     input [2:0] Funct3,
     input [6:0] Funct7,
     output reg [1:0] PCS,           // 00: Non-control, 01: Conditional branch, 10: JAL, 11: JALR
     output reg RegWrite,            // Register write enable
-    output reg MemWrite,            // Memory write enable
+    // output reg MemWrite,            // Memory write enable
     output reg MemtoReg,            // Memory to register enable (for load instructions)
     output reg [1:0] ALUSrcA,       // ALU Source A selector
     output reg ALUSrcB,             // ALU Source B selector
@@ -58,7 +58,7 @@ module Decoder(
         PCS = 2'b00;               // Default: Non-control (sequential execution)
         MemtoReg = 1'b0;           // Default: No memory to register transfer
         RegWrite = 1'b0;           // Default: No register write
-        MemWrite = 1'b0;           // Default: No memory write
+        // MemWrite = 1'b0;           // Default: No memory write
         ALUSrcA = 2'b00;           // Default: ALU Source A = Register rs1
         ALUSrcB = 1'b0;            // Default: ALU Source B = Register rs2
         ImmSrc = 3'b000;           // Default: Immediate not used
@@ -78,7 +78,7 @@ module Decoder(
                 PCS = 2'b00;            // Non-control
                 MemtoReg = 1'b0;        // No memory to register transfer
                 RegWrite = 1'b1;        // Enable register write
-                MemWrite = 1'b0;        // Disable memory write
+                // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b10;        // ALU Source A: Register rs1
                 ALUSrcB = 1'b0;         // ALU Source B: Register rs2
                 ImmSrc = 3'b000;        // Immediate not used for R-type
@@ -89,7 +89,7 @@ module Decoder(
                 PCS = 2'b00;            // Non-control
                 MemtoReg = 1'b0;        // No memory to register transfer
                 RegWrite = 1'b1;        // Enable register write
-                MemWrite = 1'b0;        // Disable memory write
+                // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b10;        // ALU Source A: Register rs1
                 ALUSrcB = 1'b1;         // ALU Source B: Immediate
                 ImmSrc = 3'b011;        // Immediate source: I-type
@@ -105,7 +105,7 @@ module Decoder(
                 PCS = 2'b00;            // Non-control
                 MemtoReg = 1'b1;        // Memory to register transfer
                 RegWrite = 1'b1;        // Enable register write
-                MemWrite = 1'b0;        // Disable memory write
+                // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b10;        // ALU Source A: Register rs1
                 ALUSrcB = 1'b1;         // ALU Source B: Immediate
                 ImmSrc = 3'b011;        // Immediate source: I-type
@@ -117,7 +117,7 @@ module Decoder(
                 PCS = 2'b00;            // Non-control
                 MemtoReg = 1'b0;        // Not used for store
                 RegWrite = 1'b0;        // Disable register write
-                MemWrite = 1'b1;        // Enable memory write
+                // MemWrite = 1'b1;        // Enable memory write
                 ALUSrcA = 2'b10;        // ALU Source A: Register rs1
                 ALUSrcB = 1'b1;         // ALU Source B: Immediate
                 ImmSrc = 3'b110;        // Immediate source: S-type
@@ -129,7 +129,7 @@ module Decoder(
                 PCS = 2'b01;            // Conditional branch
                 MemtoReg = 1'b0;        // Not used for branch
                 RegWrite = 1'b0;        // Disable register write
-                MemWrite = 1'b0;        // Disable memory write
+                // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b10;        // ALU Source A: Register rs1
                 ALUSrcB = 1'b0;         // ALU Source B: Register rs2
                 ImmSrc = 3'b111;        // Immediate source: SB-type
@@ -140,7 +140,7 @@ module Decoder(
                 PCS = 2'b11;            // Unconditional jump
                 MemtoReg = 1'b0;        // Not used for jump
                 RegWrite = 1'b1;        // Enable register write (link)
-                MemWrite = 1'b0;        // Disable memory write
+                // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b11;        // ALU Source A: PC
                 ALUSrcB = 1'b1;         // ALU Source B: Immediate
                 ImmSrc = 3'b011;        // Immediate source: I-type
@@ -151,7 +151,7 @@ module Decoder(
                 PCS = 2'b10;            // Unconditional jump
                 MemtoReg = 1'b0;        // Not used for jump
                 RegWrite = 1'b1;        // Enable register write (link)
-                MemWrite = 1'b0;        // Disable memory write
+                // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b11;        // ALU Source A: PC
                 ALUSrcB = 1'b1;         // ALU Source B: Immediate
                 ImmSrc = 3'b010;        // Immediate source: UJ-type
@@ -162,7 +162,7 @@ module Decoder(
                 PCS = 2'b00;            // Non-control
                 MemtoReg = 1'b0;        // No memory to register transfer
                 RegWrite = 1'b1;        // Enable register write
-                MemWrite = 1'b0;        // Disable memory write
+                // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b11;        // ALU Source A: PC
                 ALUSrcB = 1'b1;         // ALU Source B: Immediate
                 ImmSrc = 3'b000;        // Immediate source: U-type
@@ -173,7 +173,7 @@ module Decoder(
                 PCS = 2'b00;            // Non-control
                 MemtoReg = 1'b0;        // No memory to register transfer
                 RegWrite = 1'b1;        // Enable register write
-                MemWrite = 1'b0;        // Disable memory write
+                // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b01;        // ALU Source A: Upper immediate
                 ALUSrcB = 1'b1;         // ALU Source B: Immediate
                 ImmSrc = 3'b000;        // Immediate source: U-type
