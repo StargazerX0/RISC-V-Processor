@@ -70,7 +70,7 @@ architecture arch_TOP of TOP is
 ----------------------------------------------------------------
 -- TOP Constants
 ----------------------------------------------------------------
-constant CLK_DIV_BITS : integer := 5; 	-- Set this to 26 for a ~1Hz clock. 0 for a 100MHz clock. Should not exceed 26. 
+constant CLK_DIV_BITS : integer := 26; 	-- Set this to 26 for a ~1Hz clock. 0 for a 100MHz clock. Should not exceed 26. 
 										-- There is no need to change it for simulation, as this entity/module should not be simulated
 										-- If this is set to less than 17, you might need a software delay loop between successive reads / writes to/from UART.
 
