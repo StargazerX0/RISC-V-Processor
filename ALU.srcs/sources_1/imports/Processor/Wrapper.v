@@ -190,6 +190,7 @@ assign dec_CONSOLE	   	= (ALUResult == CONSOLE_ADDRESS) ? 1'b1 : 1'b0;
 assign dec_CONSOLE_IN_valid	= (ALUResult == CONSOLE_IN_valid_ADDRESS) ? 1'b1 : 1'b0;
 assign dec_CONSOLE_OUT_ready= (ALUResult == CONSOLE_OUT_ready_ADDRESS) ? 1'b1 : 1'b0;
 assign dec_SEVENSEG	    	= (ALUResult[31:2] == SEVENSEG_ADDRESS[31:2]) ? 1'b1 : 1'b0;
+// assign dec_SEVENSEG		= Instr;
 assign dec_MMIO         = dec_CONSOLE || dec_CONSOLE_IN_valid || dec_CONSOLE_OUT_ready || dec_PB || dec_DIP;
 
 //----------------------------------------------------------------
@@ -281,16 +282,11 @@ end
 //----------------------------------------------------------------
 integer j;
 always@(posedge CLK) begin
-	if( MemWrite_out[3] || MemWrite_out[2] || MemWrite_out[1] || MemWrite_out[0] ) begin
-		for(j=0;j<NUM_COL;j=j+1) begin
-			if(MemWrite_out[j]) begin
-				if (RESET)
-					SEVENSEGHEX <= 32'b0;
-				else if (dec_SEVENSEG)
-					SEVENSEGHEX[j*COL_WIDTH +: COL_WIDTH] <= WriteData_out[j*COL_WIDTH +: COL_WIDTH];		      
-			end
-		end
-	end
+	if (RESET)
+		SEVENSEGHEX <= 32'b0;
+	else 
+		// SEVENSEGHEX[j*COL_WIDTH +: COL_WIDTH] <= WriteData_out[j*COL_WIDTH +: COL_WIDTH];	
+		SEVENSEGHEX <= Instr;	      
 end
 
 //----------------------------------------------------------------
@@ -299,8 +295,9 @@ end
 always@(posedge CLK) begin
     if(RESET)
         LED_OUT <= 0 ;
-    else if( MemWrite_out[0] && dec_LED ) 
-        LED_OUT <= WriteData_out[N_LEDs_OUT-1 : 0] ;
+    else
+        // LED_OUT <= WriteData_out[N_LEDs_OUT-1 : 0] ;
+		LED_OUT <= ALUResult;
 end
 
 //----------------------------------------------------------------
@@ -331,7 +328,6 @@ assign LED_PC = PC[15-N_LEDs_OUT+1 : 2]; // debug showing PC
 // RV port map
 //----------------------------------------------------------------
 Complete_Pipelined_RV RV1(
-//RV RV1(
 	CLK,
 	RESET,
 	Instr,

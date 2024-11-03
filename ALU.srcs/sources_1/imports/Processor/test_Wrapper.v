@@ -1,39 +1,46 @@
+`timescale 1ns / 1ps
+/*
+----------------------------------------------------------------------------------
+--	(c) Thao Nguyen and Rajesh Panicker
+--	License terms :
+--	You are free to use this code as long as you
+--		(i) DO NOT post it on any public repository;
+--		(ii) use it only for educational purposes;
+--		(iii) accept the responsibility to ensure that your implementation does not violate any intellectual property of ARM Holdings or other entities.
+--		(iv) accept that the program is provided "as is" without warranty of any kind or assurance regarding its suitability for any particular purpose;
+--		(v) send an email to rajesh.panicker@ieee.org briefly mentioning its use (except when used for the course CG3207 at the National University of Singapore);
+--		(vi) retain this notice in this file or any files derived from this.
+----------------------------------------------------------------------------------
+*/
 module test_Wrapper #(
-    parameter N_LEDs_OUT = 8,
-    parameter N_DIPs     = 16,
-    parameter N_PBs      = 3 
-)
-();
-
-    // Signals for the Unit Under Test (UUT)
-    reg  [N_DIPs-1:0] DIP;
-    reg  [N_PBs-1:0] PB;
-    wire [N_LEDs_OUT-1:0] LED_OUT;
-    wire [6:0] LED_PC;
-    wire [31:0] SEVENSEGHEX;
-    wire [7:0] UART_TX;
-    reg  UART_TX_ready = 1;
-    wire UART_TX_valid;
-    reg  [7:0] UART_RX = 0;
-    reg  UART_RX_valid = 0;
-    wire UART_RX_ack;
-    reg  RESET;
-    reg  CLK;
-
-    // Instantiate UUT
-    Wrapper dut(
-        .DIP(DIP), .PB(PB), .LED_OUT(LED_OUT), .LED_PC(LED_PC),
-        .SEVENSEGHEX(SEVENSEGHEX), .UART_TX(UART_TX),
-        .UART_TX_ready(UART_TX_ready), .UART_TX_valid(UART_TX_valid),
-        .UART_RX(UART_RX), .UART_RX_valid(UART_RX_valid),
-        .UART_RX_ack(UART_RX_ack), .RESET(RESET), .CLK(CLK)
-    );
-
-    // Clock generation
-    always begin
-        #5 CLK = ~CLK;
-    end
-
+	   parameter N_LEDs_OUT	= 8,					
+	   parameter N_DIPs		= 16,
+	   parameter N_PBs		= 3 
+	)
+	(
+	);
+	
+	// Signals for the Unit Under Test (UUT)
+	reg  [N_DIPs-1:0] DIP = 0;		
+	reg  [N_PBs-1:0] PB = 0;			
+	wire [N_LEDs_OUT-1:0] LED_OUT;
+	wire [6:0] LED_PC;			
+	wire [31:0] SEVENSEGHEX;	
+	wire [7:0] CONSOLE_OUT;
+	reg  CONSOLE_OUT_ready = 0;
+	wire CONSOLE_OUT_valid;
+	reg  [7:0] CONSOLE_IN = 0;
+	reg  CONSOLE_IN_valid = 0;
+	wire CONSOLE_IN_ack;
+	reg  RESET = 0;					
+	reg  CLK = 0;				
+	
+	// Instantiate UUT
+	Wrapper dut(DIP, PB, LED_OUT, LED_PC, SEVENSEGHEX, CONSOLE_OUT, CONSOLE_OUT_ready, CONSOLE_OUT_valid, CONSOLE_IN, CONSOLE_IN_valid, CONSOLE_IN_ack, RESET, CLK) ;
+	
+	// Note: This testbench is for the Hello World program. Other assembly programs require appropriate modifications.
+	// Run for about 6 us. Set CONSOLE_OUT radix to ASCII to see the printed messages.
+	// STIMULI
     // Test stimulus
     initial begin
         // Initialize
@@ -59,10 +66,11 @@ module test_Wrapper #(
         // End simulation
         $finish;
     end
-
-    // Optional: Monitor changes in LED_OUT
-    always @(LED_OUT) begin
-        $display("Time %t: LED changed to %h", $time, LED_OUT);
+	
+	// GENERATE CLOCK       
+    always          
+    begin
+       #5 CLK = ~CLK ; // invert clk every 5 time units 
     end
-
+    
 endmodule
