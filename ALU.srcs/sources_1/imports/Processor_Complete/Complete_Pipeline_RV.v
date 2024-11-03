@@ -105,7 +105,9 @@ module Complete_Pipelined_RV(
     
     wire Busy;           // From MCycle module indicating multi-cycle operation
     wire Stall_Signal;   // Stall signal from Hazard Detection Unit
-    wire Flush_Signal;   // Flush signal from Hazard Detection Unit
+    wire FlushE;   // Flush signal from Hazard Detection Unit
+    reg FlushED;
+    wire FlushD;   // Flush signal from Hazard Detection Unit
     wire stall;          // Combined Stall signal
     
     // Generate Stall Signal
@@ -130,18 +132,42 @@ module Complete_Pipelined_RV(
         .ALUFlags(ALUFlags_EX),
         .PCSrc(PCSrc_EX)
     );
+
+    wire branch_enableD;
+    reg branch_enableE;
+    wire branch_taken;
+    wire prediction;
+    
+    // Define branch_enable based on the instruction type (branch instructions)
+    assign branch_enableD = (Opcode_ID == 7'b1100011);  // Branch instructions
+    assign branch_taken = (PCSrc_EX == 2'b01);
+    
+    always @(posedge CLK) begin
+        if (~stall) begin
+            branch_enableE <= branch_enableD;
+            FlushED <= FlushE;
+        end
+    end
+
+    Dynamic_Branch_Predictor Dynamic_Branch_Predictor1(
+        .CLK(CLK),
+        .RESET(RESET),
+        .branch_enable(branch_enableE),
+        .branch_taken(branch_taken),
+        .prediction(prediction)
+    );
     
     // PC_IN Logic
     wire [31:0] PC_IN;
-    assign PC_IN = (PCSrc_EX == 2'b00) ? PC_IF + 4 :
-                   (PCSrc_EX == 2'b01) ? PC_IF + ExtImm_EX - 8 :
+    assign PC_IN = 
+                   (branch_enableD && !FlushE && prediction) ? PC_IF + ExtImm_ID - 4 :
+                   (branch_enableE && FlushD && !FlushE) ? PC_IF - ExtImm_EX + 8 :
+                   (branch_enableE && !prediction && branch_taken) ? PC_IF + ExtImm_EX - 8 :
+                   (PCSrc_EX == 2'b00) ? PC_IF + 4 :
+//                   (PCSrc_EX == 2'b01) ? PC_IF + ExtImm_EX - 8 :
                    (PCSrc_EX == 2'b10) ? {ALUResult_EX[31:1], 1'b0} - 8 :
                    (PCSrc_EX == 2'b11) ? RD1_EX + ExtImm_EX :
                    PC_IF + 4; // Default case
-    
-    // Flush signal for branch taken
-    wire Flush;
-    assign Flush = Flush_Signal; // Directly use the flush signal from HDU
     
     // PC Update Logic with Stall
     ProgramCounter PC1(
@@ -163,7 +189,7 @@ module Complete_Pipelined_RV(
         .CLK(CLK),
         .RESET(RESET),
         .enable(~stall),
-        .flush(Flush),
+        .flush(FlushD),
         .PC_IF(PC_IF),
         .Instr_IF(Instr_IF),
         .PC_ID(PC_ID),
@@ -232,7 +258,7 @@ module Complete_Pipelined_RV(
         .CLK(CLK),
         .RESET(RESET),
         .enable(~stall),
-        .flush(Flush_Signal), // Connect Flush signal
+        .flush(FlushE), // Connect Flush signal
         // Control signals
         .RegWrite_in(RegWrite_ID),
         .MemtoReg_in(MemtoReg_ID),
@@ -311,8 +337,13 @@ module Complete_Pipelined_RV(
         .EX_RD(rd_EX),
         .PCSrc_EX(PCSrc_EX),
         .ID_MemRead(MemRead_ID),
+        .branch_enableE(branch_enableE),
+        .branch_taken(branch_taken),
+        .prediction(prediction),
         .Stall(Stall_Signal),
-        .Flush(Flush_Signal)
+        .FlushED(FlushED),
+        .FlushE(FlushE),
+        .FlushD(FlushD)
     );
 
 
