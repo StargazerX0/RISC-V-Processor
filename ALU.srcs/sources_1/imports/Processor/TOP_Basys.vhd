@@ -43,7 +43,7 @@ entity TOP is
 			constant N_PBs		: integer := 3;  -- Number of PushButtons. 3 by default
 			-- Order (2 downto 0) -> BTNL, BTNC, BTNR.
 			-- Note that BTNU is used as PAUSE and BTND is used as RESET
-			constant N_SEVEN_SEG_DIGITs	: integer := 4  -- Number of digits on the 7-seg display. 4 for Basys, 8 for Nexys
+			constant N_SEVEN_SEG_DIGITs	: integer := 8  -- Number of digits on the 7-seg display. 4 for Basys, 8 for Nexys
 		);
 		Port 
 		(
@@ -70,7 +70,7 @@ architecture arch_TOP of TOP is
 ----------------------------------------------------------------
 -- TOP Constants
 ----------------------------------------------------------------
-constant CLK_DIV_BITS : integer := 26; 	-- Set this to 26 for a ~1Hz clock. 0 for a 100MHz clock. Should not exceed 26. 
+constant CLK_DIV_BITS : integer := 5; 	-- Set this to 26 for a ~1Hz clock. 0 for a 100MHz clock. Should not exceed 26. 
 										-- There is no need to change it for simulation, as this entity/module should not be simulated
 										-- If this is set to less than 17, you might need a software delay loop between successive reads / writes to/from UART.
 
@@ -311,19 +311,15 @@ constant SevenSegHexMap : MEM_16x7 := ("0111111", "0000110", "1011011", "1001111
 --     ---
 --      3
 --  Decimal Point = 7
-variable sevenseg_counter : std_logic_vector(26 downto 0) := (others => '0');
+variable sevenseg_counter : std_logic_vector(18 downto 0) := (others => '0');
 variable indices : integer := 0;
 begin
 	if CLK_undiv'event and CLK_undiv = '1' then
 		sevenseg_counter := sevenseg_counter+1;
-		indices := conv_integer(sevenseg_counter(18 downto 17) & "00");
-		if sevenseg_counter(26) = '1' then
-			SevenSegCat <= not(SevenSegHexMap(conv_integer(SevenSegHex(indices+3 downto indices)))); -- Least significant part
-		else
-			SevenSegCat <= not(SevenSegHexMap(conv_integer(SevenSegHex(indices+19 downto indices+16)))); -- Most significant part
-		end if;
+		indices := conv_integer(sevenseg_counter(18 downto 16) & "00");
+		SevenSegCat <= not(SevenSegHexMap(conv_integer(SevenSegHex(indices+3 downto indices))));
 		SevenSegAN 	<= (others=>'1'); -- ~200Hz refresh
-		SevenSegAN(conv_integer(sevenseg_counter(18 downto 17))) <= '0';
+		SevenSegAN(conv_integer(sevenseg_counter(18 downto 16))) <= '0';
 	end if;
 end process;
 
