@@ -11,8 +11,13 @@ module Hazard_Detection_Unit(
     input [4:0] EX_RD,         // Destination Register in EX stage
     input [1:0] PCSrc_EX,      // PC Source from EX stage (for branches and jumps)
     input ID_MemRead,          // MemRead signal in ID stage (for load instructions)
+    input branch_enableE,
+    input branch_taken,
+    input prediction,
     output reg Stall,          // Stall signal
-    output reg Flush           // Flush signal
+    input FlushED,
+    output reg FlushE,           // Flush signal
+    output reg FlushD
     );
 
 // Define states using parameters (Standard Verilog)
@@ -36,15 +41,20 @@ end
 always @(*) begin
     // Default assignments
     Stall = 1'b0;
-    Flush = 1'b0;
+    FlushE = 1'b0;
+    FlushD = 1'b0;
     next_state = current_state;
-
+    
     case (current_state)
         IDLE: begin
             // Control Hazard Detection
-            if (PCSrc_EX != 2'b00) begin
-                Flush = 1'b1;
-                // Stay in IDLE, as Flush handles the pipeline clearing
+            if (branch_enableE) begin
+                if (branch_taken) begin
+                    FlushE = 1'b1;
+                end
+                if (!FlushED && ((!branch_taken && prediction) || (branch_taken && !prediction))) begin
+                    FlushD = 1'b1;
+                end
             end
 
             // Load-Use Hazard Detection
@@ -83,14 +93,12 @@ always @(*) begin
         CLEAR_STALL: begin
             // Deassert Stall
             Stall = 1'b0;
-            Flush = 1'b0;
             // Transition back to IDLE
             next_state = IDLE;
         end
 
         default: begin
             Stall = 1'b0;
-            Flush = 1'b0;
             next_state = IDLE;
         end
     endcase
