@@ -30,7 +30,6 @@ module Dynamic_Branch_Predictor(
         if (RESET) begin
             state <= STRONGLY_TAKEN;
             next_state <= STRONGLY_TAKEN;
-            prediction <= 1'b1;
         end else if (branch_enable) begin
             // Only update the state if branch_enable is high
             case (state)
