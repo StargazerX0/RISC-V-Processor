@@ -40,7 +40,7 @@ module Decoder_Complete(
     // output reg MemWrite,            // Memory write enable
     output reg MemtoReg,            // Memory to register enable (for load instructions)
     output reg [1:0] ALUSrcA,       // ALU Source A selector
-    output reg ALUSrcB,             // ALU Source B selector
+    output reg [1:0] ALUSrcB,       // ALU Source B selector
     output reg [2:0] ImmSrc,        // Immediate source selector
     output reg [3:0] ALUControl,    // ALU operation control
     output reg MCycleStart,         // Multi-cycle operation start
@@ -60,7 +60,7 @@ module Decoder_Complete(
         RegWrite = 1'b0;           // Default: No register write
         // MemWrite = 1'b0;           // Default: No memory write
         ALUSrcA = 2'b00;           // Default: ALU Source A = Register rs1
-        ALUSrcB = 1'b0;            // Default: ALU Source B = Register rs2
+        ALUSrcB = 2'b00;            // Default: ALU Source B = Register rs2
         ImmSrc = 3'b000;           // Default: Immediate not used
         ALUControl = 4'b0000;      // Default: ALU operation = ADD
         MCycleStart = 1'b0;        // Default: No multi-cycle operation
@@ -80,7 +80,7 @@ module Decoder_Complete(
                 RegWrite = 1'b1;        // Enable register write
                 // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b10;        // ALU Source A: Register rs1
-                ALUSrcB = 1'b0;         // ALU Source B: Register rs2
+                ALUSrcB = 2'b00;         // ALU Source B: Register rs2
                 ImmSrc = 3'b000;        // Immediate not used for R-type
                 ALUControl = {Funct3, Funct7[5]}; // ALU operation based on Funct3 and Funct7[5]
             end
@@ -91,7 +91,7 @@ module Decoder_Complete(
                 RegWrite = 1'b1;        // Enable register write
                 // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b10;        // ALU Source A: Register rs1
-                ALUSrcB = 1'b1;         // ALU Source B: Immediate
+                ALUSrcB = 2'b11;         // ALU Source B: Immediate
                 ImmSrc = 3'b011;        // Immediate source: I-type
                 ALUControl[3:1] = Funct3; // ALU operation based on Funct3
                 if (Funct3 == 3'h5) begin // SRAI or SRLI based on Funct7[5]
@@ -107,7 +107,7 @@ module Decoder_Complete(
                 RegWrite = 1'b1;        // Enable register write
                 // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b10;        // ALU Source A: Register rs1
-                ALUSrcB = 1'b1;         // ALU Source B: Immediate
+                ALUSrcB = 2'b11;         // ALU Source B: Immediate
                 ImmSrc = 3'b011;        // Immediate source: I-type
                 ALUControl = 4'b0000;   // ALU operation: ADD (calculate address)
                 isLoad = 1'b1;          // Identify as a load instruction
@@ -119,7 +119,7 @@ module Decoder_Complete(
                 RegWrite = 1'b0;        // Disable register write
                 // MemWrite = 1'b1;        // Enable memory write
                 ALUSrcA = 2'b10;        // ALU Source A: Register rs1
-                ALUSrcB = 1'b1;         // ALU Source B: Immediate
+                ALUSrcB = 2'b11;         // ALU Source B: Immediate
                 ImmSrc = 3'b110;        // Immediate source: S-type
                 ALUControl = 4'b0000;   // ALU operation: ADD (calculate address)
                 isStore = 1'b1;         // Identify as a store instruction
@@ -131,7 +131,7 @@ module Decoder_Complete(
                 RegWrite = 1'b0;        // Disable register write
                 // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b10;        // ALU Source A: Register rs1
-                ALUSrcB = 1'b0;         // ALU Source B: Register rs2
+                ALUSrcB = 2'b00;         // ALU Source B: Register rs2
                 ImmSrc = 3'b111;        // Immediate source: SB-type
                 ALUControl = 4'b0001;   // ALU operation: SUB (for comparison)
             end
@@ -142,7 +142,7 @@ module Decoder_Complete(
                 RegWrite = 1'b1;        // Enable register write (link)
                 // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b11;        // ALU Source A: PC
-                ALUSrcB = 1'b1;         // ALU Source B: Immediate
+                ALUSrcB = 2'b01;         // ALU Source B: Immediate
                 ImmSrc = 3'b011;        // Immediate source: I-type
                 ALUControl = 4'b0000;   // ALU operation: ADD (PC + immediate)
             end
@@ -153,7 +153,7 @@ module Decoder_Complete(
                 RegWrite = 1'b1;        // Enable register write (link)
                 // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b11;        // ALU Source A: PC
-                ALUSrcB = 1'b1;         // ALU Source B: Immediate
+                ALUSrcB = 2'b01;         // ALU Source B: Immediate
                 ImmSrc = 3'b010;        // Immediate source: UJ-type
                 ALUControl = 4'b0000;   // ALU operation: ADD (PC + immediate)
             end
@@ -164,7 +164,7 @@ module Decoder_Complete(
                 RegWrite = 1'b1;        // Enable register write
                 // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b11;        // ALU Source A: PC
-                ALUSrcB = 1'b1;         // ALU Source B: Immediate
+                ALUSrcB = 2'b11;         // ALU Source B: Immediate
                 ImmSrc = 3'b000;        // Immediate source: U-type
                 ALUControl = 4'b0000;   // ALU operation: ADD (PC + immediate)
             end
@@ -175,7 +175,7 @@ module Decoder_Complete(
                 RegWrite = 1'b1;        // Enable register write
                 // MemWrite = 1'b0;        // Disable memory write
                 ALUSrcA = 2'b01;        // ALU Source A: Upper immediate
-                ALUSrcB = 1'b1;         // ALU Source B: Immediate
+                ALUSrcB = 2'b11;         // ALU Source B: Immediate
                 ImmSrc = 3'b000;        // Immediate source: U-type
                 ALUControl = 4'b0000;   // ALU operation: ADD (replace upper bits)
             end
