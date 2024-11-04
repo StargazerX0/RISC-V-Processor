@@ -38,7 +38,7 @@ module Complete_Pipelined_RV(
     wire RegWrite_ID;
     wire MemtoReg_ID;
     wire [1:0] ALUSrcA_ID;
-    wire ALUSrcB_ID;
+    wire [1:0] ALUSrcB_ID;
     wire [3:0] ALUControl_ID;
     wire MCycleStart_ID;
     wire [1:0] MCycleOp_ID;
@@ -58,7 +58,7 @@ module Complete_Pipelined_RV(
     wire RegWrite_EX;
     wire MemtoReg_EX;
     wire [1:0] ALUSrcA_EX;
-    wire ALUSrcB_EX;
+    wire [1:0] ALUSrcB_EX;
     wire [3:0] ALUControl_EX;
     wire MCycleStart_EX;
     wire [1:0] MCycleOp_EX;
@@ -108,6 +108,7 @@ module Complete_Pipelined_RV(
     wire FlushE;   // Flush signal from Hazard Detection Unit
     reg FlushED;
     wire FlushD;   // Flush signal from Hazard Detection Unit
+    reg FlushDF;
     wire stall;          // Combined Stall signal
     
     // Generate Stall Signal
@@ -146,6 +147,7 @@ module Complete_Pipelined_RV(
         if (~stall) begin
             branch_enableE <= branch_enableD;
             FlushED <= FlushE;
+            FlushDF <= FlushD;
         end
     end
 
@@ -163,6 +165,7 @@ module Complete_Pipelined_RV(
                    (branch_enableD && !FlushE && prediction) ? PC_IF + ExtImm_ID - 4 :
                    (branch_enableE && FlushD && !FlushE) ? PC_IF - ExtImm_EX + 8 :
                    (branch_enableE && !prediction && branch_taken) ? PC_IF + ExtImm_EX - 8 :
+                   (PCS_EX == 2'b10 && PCSrc_EX == 2'b01) ? PC_IF + ExtImm_EX - 8 + (FlushDF ? 4 : 0) :
                    (PCSrc_EX == 2'b00) ? PC_IF + 4 :
 //                   (PCSrc_EX == 2'b01) ? PC_IF + ExtImm_EX - 8 :
                    (PCSrc_EX == 2'b10) ? {ALUResult_EX[31:1], 1'b0} - 8 :
@@ -335,7 +338,7 @@ module Complete_Pipelined_RV(
         .EX_MemRead(MemRead_EX),
         .EX_MemWrite(MemWrite_EX),
         .EX_RD(rd_EX),
-        .PCSrc_EX(PCSrc_EX),
+        .PCS_EX(PCS_EX),
         .ID_MemRead(MemRead_ID),
         .branch_enableE(branch_enableE),
         .branch_taken(branch_taken),
@@ -375,7 +378,7 @@ module Complete_Pipelined_RV(
 
     // ALU Source B Selection with Forwarding and ALUSrcB_EX
     wire [31:0] Src_B_Selected;
-    assign Src_B_Selected = ALUSrcB_EX ? ExtImm_EX : Forwarded_RD2;
+    assign Src_B_Selected = ALUSrcB_EX[0] ? (ALUSrcB_EX[1] ? ExtImm_EX : 4) : Forwarded_RD2;
 
     // ALU Inputs
     wire [31:0] ALU_Src_A = Src_A_Selected;
