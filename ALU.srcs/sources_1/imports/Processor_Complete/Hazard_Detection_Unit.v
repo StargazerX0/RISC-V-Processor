@@ -9,7 +9,7 @@ module Hazard_Detection_Unit(
     input EX_MemRead,          // MemRead signal in EX stage
     input EX_MemWrite,         // MemWrite signal in EX stage (for store instructions)
     input [4:0] EX_RD,         // Destination Register in EX stage
-    input [1:0] PCSrc_EX,      // PC Source from EX stage (for branches and jumps)
+    input [1:0] PCS_EX,        // PC from EX stage (for branches and jumps)
     input ID_MemRead,          // MemRead signal in ID stage (for load instructions)
     input branch_enableE,
     input branch_taken,
@@ -20,6 +20,7 @@ module Hazard_Detection_Unit(
     output reg FlushD
     );
 
+// Define states using parameters (Standard Verilog)
 parameter IDLE          = 3'b000;
 parameter STALL_LOAD    = 3'b001; // For Load-Use Hazard (1 stall cycle)
 parameter STALL_STORE_1 = 3'b010; // First stall cycle for Store-Load Hazard
@@ -54,6 +55,9 @@ always @(*) begin
                 if (!FlushED && ((!branch_taken && prediction) || (branch_taken && !prediction))) begin
                     FlushD = 1'b1;
                 end
+            end else if (PCS_EX == 2'b11 || PCS_EX == 2'b10) begin
+                FlushE = 1'b1;
+                FlushD = 1'b1;
             end
 
             // Load-Use Hazard Detection
