@@ -20,7 +20,6 @@ module Hazard_Detection_Unit(
     output reg FlushD
     );
 
-// Define states using parameters (Standard Verilog)
 parameter IDLE          = 3'b000;
 parameter STALL_LOAD    = 3'b001; // For Load-Use Hazard (1 stall cycle)
 parameter STALL_STORE_1 = 3'b010; // First stall cycle for Store-Load Hazard
